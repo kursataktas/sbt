@@ -25,8 +25,8 @@ import sbt.nio.file.Glob
 import scala.annotation.{ nowarn, tailrec }
 
 private[sbt] object WatchTransitiveDependencies {
-  private implicit class SourceOps(val source: Source) {
-    def toGlob: Glob = {
+  extension (source: Source) {
+    private def toGlob: Glob = {
       val filter = source.includeFilter -- source.excludeFilter
       Globs.apply(source.base.toPath, source.recursive, filter)
     }

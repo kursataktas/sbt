@@ -153,8 +153,8 @@ private[sbt] object Clean {
       case _                => Nil
   end ToSeqPath
 
-  private implicit class ToSeqPathOps[T](val t: T) extends AnyVal {
-    def toSeqPath(implicit toSeqPath: ToSeqPath[T]): Seq[Path] = toSeqPath(t)
+  extension [T](t: T) {
+    private def toSeqPath(implicit toSeqPath: ToSeqPath[T]): Seq[Path] = toSeqPath(t)
   }
 
   @nowarn

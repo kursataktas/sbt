@@ -53,18 +53,18 @@ object Watch {
   private val formatter = DateTimeFormatter.ofPattern("yyyy-MMM-dd HH:mm:ss.SSS")
   private val timeZone = ZoneId.systemDefault
   private val timeZoneName = timeZone.getDisplayName(TextStyle.SHORT, Locale.getDefault)
-  private implicit class DurationOps(val d: Duration) extends AnyVal {
-    def finite: FiniteDuration = d match {
+  extension (d: Duration) {
+    private def finite: FiniteDuration = d match {
       case f: FiniteDuration => f
       case _                 => new FiniteDuration(Long.MaxValue, TimeUnit.MILLISECONDS)
     }
-    def toEpochString: String = {
+    private def toEpochString: String = {
       val zdt = ZonedDateTime.ofInstant(Instant.ofEpochMilli(d.toMillis), timeZone)
       s"${formatter.format(zdt)} $timeZoneName"
     }
   }
-  private[sbt] implicit class EventOps(val event: Event) extends AnyVal {
-    def toEpochString: String = event.occurredAt.toEpochString
+  extension (event: Event) {
+    private[sbt] def toEpochString: String = event.occurredAt.toEpochString
   }
   private[sbt] object Event {
     trait Impl { self: Event =>
@@ -434,8 +434,8 @@ object Watch {
   private[sbt] def aggregate(events: Seq[(Action, Event)]): Option[(Action, Event)] =
     if (events.isEmpty) None else Some(events.minBy(_._1))
 
-  private implicit class StringToExec(val s: String) extends AnyVal {
-    def toExec: Exec = Exec(s, None)
+  extension (s: String) {
+    private def toExec: Exec = Exec(s, None)
   }
 
   /**

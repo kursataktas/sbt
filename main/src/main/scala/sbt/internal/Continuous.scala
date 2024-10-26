@@ -1003,7 +1003,7 @@ private[sbt] object Continuous extends DeprecatedContinuous {
     key.get(deprecatedTriggeredMessage).map(Left(_)).getOrElse(Right(default))
   }
 
-  private implicit class ScopeOps(val scope: Scope) {
+  extension (scope: Scope) {
 
     /**
      * This shows the [[Scope]] in the format that a user would likely type it in a build
@@ -1014,7 +1014,7 @@ private[sbt] object Continuous extends DeprecatedContinuous {
      *
      * @return the pretty printed output.
      */
-    def show: String = {
+    private def show: String = {
       val mask = ScopeMask(
         config = scope.config.toOption.isDefined,
         task = scope.task.toOption.isDefined,
@@ -1035,7 +1035,7 @@ private[sbt] object Continuous extends DeprecatedContinuous {
     }
   }
 
-  private implicit class ScopedKeyOps(val scopedKey: ScopedKey[_]) extends AnyVal {
+  extension (scopedKey: ScopedKey[_]) {
 
     /**
      * Gets the value for a setting key scoped to the wrapped [[ScopedKey]]. If the task axis is not
@@ -1049,7 +1049,7 @@ private[sbt] object Continuous extends DeprecatedContinuous {
      * @return the optional value of the [[SettingKey]] if it is defined at the input
      *         [[ScopedKey]] instance's scope or task scope.
      */
-    def get[T](settingKey: SettingKey[T])(implicit extracted: Extracted): Option[T] = {
+    private def get[T](settingKey: SettingKey[T])(implicit extracted: Extracted): Option[T] = {
       lazy val taskScope = Project.fillTaskAxis(scopedKey).scope
       scopedKey.scope match {
         case scope if scope.task.toOption.isDefined =>
@@ -1071,7 +1071,7 @@ private[sbt] object Continuous extends DeprecatedContinuous {
      * @return the optional value of the [[SettingKey]] if it is defined at the input
      *         [[ScopedKey]] instance's scope or task scope.
      */
-    def get[T](taskKey: TaskKey[T])(implicit extracted: Extracted): Option[TaskKey[T]] = {
+    private def get[T](taskKey: TaskKey[T])(implicit extracted: Extracted): Option[TaskKey[T]] = {
       lazy val taskScope = Project.fillTaskAxis(scopedKey).scope
       scopedKey.scope match {
         case scope if scope.task.toOption.isDefined =>
@@ -1094,10 +1094,10 @@ private[sbt] object Continuous extends DeprecatedContinuous {
      *
      * @return the pretty printed output.
      */
-    def show: String = s"${scopedKey.scope.show} / ${scopedKey.key}"
+    private def show: String = s"${scopedKey.scope.show} / ${scopedKey.key}"
   }
 
-  private implicit class LoggerOps(val logger: Logger) extends AnyVal {
+  extension (logger: Logger) {
 
     /**
      * Creates a logger that adds a prefix to the messages that it logs. The motivation is so that
@@ -1106,7 +1106,7 @@ private[sbt] object Continuous extends DeprecatedContinuous {
      * @param prefix the string to prefix the message with
      * @return the wrapped Logger.
      */
-    def withPrefix(prefix: String): Logger = new Logger {
+    private def withPrefix(prefix: String): Logger = new Logger {
       override def trace(t: => Throwable): Unit = logger.trace(t)
 
       override def success(message: => String): Unit = logger.success(message)
