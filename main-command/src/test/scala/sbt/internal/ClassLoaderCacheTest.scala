@@ -17,7 +17,7 @@ import sbt.internal.classpath.ClassLoaderCache
 import sbt.io.IO
 
 object ClassLoaderCacheTest {
-  implicit class CacheOps(val c: ClassLoaderCache) {
+  extension (c: ClassLoaderCache) {
     def get(classpath: Seq[File]): ClassLoader = c(classpath.toList)
   }
 }

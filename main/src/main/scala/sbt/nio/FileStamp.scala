@@ -248,8 +248,8 @@ object FileStamp {
       }
   }
 
-  private implicit class EitherOps(val e: Either[FileStamp, FileStamp]) extends AnyVal {
-    def value: Option[FileStamp] = if (e == null) None else Some(e.fold(identity, identity))
+  extension (e: Either[FileStamp, FileStamp]) {
+    private def value: Option[FileStamp] = if (e == null) None else Some(e.fold(identity, identity))
   }
 
   private[sbt] class Cache {
