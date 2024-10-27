@@ -5,7 +5,7 @@
 // DO NOT EDIT MANUALLY
 package sbt.internal.bsp.codec
 import _root_.sjsonnew.{ Unbuilder, Builder, JsonFormat, deserializationError }
-trait JvmEnvironmentItemFormats { self: sbt.internal.bsp.codec.BuildTargetIdentifierFormats with sjsonnew.BasicJsonProtocol =>
+trait JvmEnvironmentItemFormats { self: sbt.internal.bsp.codec.BuildTargetIdentifierFormats & sjsonnew.BasicJsonProtocol =>
 implicit lazy val JvmEnvironmentItemFormat: JsonFormat[sbt.internal.bsp.JvmEnvironmentItem] = new JsonFormat[sbt.internal.bsp.JvmEnvironmentItem] {
   override def read[J](__jsOpt: Option[J], unbuilder: Unbuilder[J]): sbt.internal.bsp.JvmEnvironmentItem = {
     __jsOpt match {
