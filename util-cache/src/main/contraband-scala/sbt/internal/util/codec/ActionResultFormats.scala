@@ -5,7 +5,7 @@
 // DO NOT EDIT MANUALLY
 package sbt.internal.util.codec
 import _root_.sjsonnew.{ Unbuilder, Builder, JsonFormat, deserializationError }
-trait ActionResultFormats { self: sbt.internal.util.codec.HashedVirtualFileRefFormats with sbt.internal.util.codec.ByteBufferFormats with sjsonnew.BasicJsonProtocol =>
+trait ActionResultFormats { self: sbt.internal.util.codec.HashedVirtualFileRefFormats & sbt.internal.util.codec.ByteBufferFormats & sjsonnew.BasicJsonProtocol =>
 implicit lazy val ActionResultFormat: JsonFormat[sbt.util.ActionResult] = new JsonFormat[sbt.util.ActionResult] {
   override def read[J](__jsOpt: Option[J], unbuilder: Unbuilder[J]): sbt.util.ActionResult = {
     __jsOpt match {

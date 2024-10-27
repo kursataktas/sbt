@@ -5,7 +5,7 @@
 // DO NOT EDIT MANUALLY
 package sbt.librarymanagement
 import _root_.sjsonnew.{ Unbuilder, Builder, JsonFormat, deserializationError }
-trait URLRepositoryFormats { self: sbt.librarymanagement.PatternsFormats with sjsonnew.BasicJsonProtocol =>
+trait URLRepositoryFormats { self: sbt.librarymanagement.PatternsFormats & sjsonnew.BasicJsonProtocol =>
 implicit lazy val URLRepositoryFormat: JsonFormat[sbt.librarymanagement.URLRepository] = new JsonFormat[sbt.librarymanagement.URLRepository] {
   override def read[J](__jsOpt: Option[J], unbuilder: Unbuilder[J]): sbt.librarymanagement.URLRepository = {
     __jsOpt match {

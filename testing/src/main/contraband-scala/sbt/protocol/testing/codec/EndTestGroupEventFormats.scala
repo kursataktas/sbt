@@ -5,7 +5,7 @@
 // DO NOT EDIT MANUALLY
 package sbt.protocol.testing.codec
 import _root_.sjsonnew.{ Unbuilder, Builder, JsonFormat, deserializationError }
-trait EndTestGroupEventFormats { self: sbt.protocol.testing.codec.TestResultFormats with sjsonnew.BasicJsonProtocol =>
+trait EndTestGroupEventFormats { self: sbt.protocol.testing.codec.TestResultFormats & sjsonnew.BasicJsonProtocol =>
 implicit lazy val EndTestGroupEventFormat: JsonFormat[sbt.protocol.testing.EndTestGroupEvent] = new JsonFormat[sbt.protocol.testing.EndTestGroupEvent] {
   override def read[J](__jsOpt: Option[J], unbuilder: Unbuilder[J]): sbt.protocol.testing.EndTestGroupEvent = {
     __jsOpt match {

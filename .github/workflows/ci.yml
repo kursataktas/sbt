@@ -234,6 +234,7 @@ jobs:
         if: ${{ matrix.jobtype == 11 }}
         shell: bash
         run: |
+          find **/src/main/contraband-scala -name "*.scala" -delete || true
           sbt generateContrabands
           git diff --exit-code
       - name: Cleanup
