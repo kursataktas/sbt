@@ -23,7 +23,6 @@ object HouseRulesPlugin extends AutoPlugin {
       })
       .value
       .toList,
-    scalacOptions ++= "-Ykind-projector".ifScala3.value.toList,
     scalacOptions ++= "-Yinline-warnings".ifScala211OrMinus.value.toList,
     scalacOptions ++= "-Yno-adapted-args".ifScala212OrMinus.value.toList,
     scalacOptions ++= "-Ywarn-dead-code".ifScala2.value.toList,
