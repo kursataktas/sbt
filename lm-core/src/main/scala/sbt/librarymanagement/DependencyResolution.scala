@@ -169,7 +169,7 @@ class DependencyResolution private[sbt] (lmEngine: DependencyResolutionInterface
       restrictedCopy(m, true)
     }
     // Adding list of explicit artifacts here.
-    val exls = Map(config.excludes map { case (k, v) => (k, v.toSet) }: _*)
+    val exls = Map(config.excludes map { case (k, v) => (k, v.toSet) }*)
     val deps = baseModules.distinct flatMap classifiedArtifacts(classifiers, exls, artifacts)
     val base = restrictedCopy(id, true).withName(id.name + classifiers.mkString("$", "_", ""))
     val moduleSetting = ModuleDescriptorConfiguration(base, ModuleInfo(base.name))

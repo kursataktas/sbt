@@ -63,8 +63,8 @@ object RawCompileLike {
         options,
         maxErrors
       )
-      val cachedComp = inputChanged(cacheStoreFactory make "inputs") { (inChanged, in: Inputs) =>
-        inputChanged(cacheStoreFactory make "output") {
+      val cachedComp = inputChanged(cacheStoreFactory.make("inputs")) { (inChanged, in: Inputs) =>
+        inputChanged(cacheStoreFactory.make("output")) {
           (outChanged, outputs: FilesInfo[PlainFileInfo]) =>
             if (inChanged || outChanged)
               doCompile(sources, classpath, outputDirectory, options, maxErrors, log)

@@ -17,7 +17,7 @@ import java.nio.file.Path
  * the values of Project vals, and the import statements for all defined vals/defs.
  */
 private[sbt] final class LoadedSbtFile(
-    val settings: Seq[Setting[_]],
+    val settings: Seq[Setting[?]],
     val projects: Seq[Project],
     val importedDefs: Seq[String],
     val manipulations: Seq[Project => Project],
@@ -33,7 +33,7 @@ private[sbt] final class LoadedSbtFile(
       projects ++ o.projects,
       importedDefs ++ o.importedDefs,
       manipulations,
-      definitions zip o.definitions,
+      definitions.zip(o.definitions),
       generatedFiles ++ o.generatedFiles
     )
 
@@ -48,7 +48,7 @@ private[sbt] final class LoadedSbtFile(
 private[sbt] final class DefinedSbtValues(val sbtFiles: Seq[EvalDefinitions]) {
 
   def values(parent: ClassLoader): Seq[Any] =
-    sbtFiles flatMap (_ values parent)
+    sbtFiles flatMap (_.values(parent))
 
   def classloader(parent: ClassLoader): ClassLoader =
     sbtFiles.foldLeft(parent) { (cl, e) =>

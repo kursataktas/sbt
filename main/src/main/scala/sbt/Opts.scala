@@ -86,13 +86,13 @@ object DefaultOptions {
     if (plugin && snapshot) Vector(resolver.sbtSnapshots, resolver.sbtIvySnapshots)
     else Vector.empty
   }
-  def addResolvers: Setting[_] = Keys.resolvers ++= { resolvers(Keys.isSnapshot.value) }
-  def addPluginResolvers: Setting[_] =
+  def addResolvers: Setting[?] = Keys.resolvers ++= { resolvers(Keys.isSnapshot.value) }
+  def addPluginResolvers: Setting[?] =
     Keys.resolvers ++= pluginResolvers(Keys.sbtPlugin.value, Keys.isSnapshot.value)
 
   def credentials(state: State): Credentials =
     Credentials(getGlobalSettingsDirectory(state, getGlobalBase(state)) / ".credentials")
-  def addCredentials: Setting[_] = Keys.credentials += { credentials(Keys.state.value) }
+  def addCredentials: Setting[?] = Keys.credentials += { credentials(Keys.state.value) }
 
   def shellPrompt(version: String): State => String =
     s =>
@@ -101,5 +101,5 @@ object DefaultOptions {
         Project.extract(s).currentProject.id,
         version
       )
-  def setupShellPrompt: Setting[_] = Keys.shellPrompt := { shellPrompt(Keys.version.value) }
+  def setupShellPrompt: Setting[?] = Keys.shellPrompt := { shellPrompt(Keys.version.value) }
 }

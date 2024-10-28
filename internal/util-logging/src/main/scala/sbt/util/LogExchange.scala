@@ -23,7 +23,7 @@ import scala.collection.concurrent
 
 sealed abstract class LogExchange {
   private[sbt] lazy val context: XLoggerContext = init()
-  private[sbt] val stringCodecs: concurrent.Map[String, ShowLines[_]] = concurrent.TrieMap()
+  private[sbt] val stringCodecs: concurrent.Map[String, ShowLines[?]] = concurrent.TrieMap()
   private[sbt] val builtInStringCodecs: Unit = initStringCodecs()
   private[util] val configs = new ConcurrentHashMap[String, LoggerConfig]
   private[util] def addConfig(name: String, config: LoggerConfig): Unit =

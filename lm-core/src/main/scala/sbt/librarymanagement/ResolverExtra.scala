@@ -36,7 +36,7 @@ private[librarymanagement] abstract class MavenRepositoryFunctions {
 private[librarymanagement] abstract class PatternsFunctions {
   implicit def defaultPatterns: Patterns = Resolver.defaultPatterns
 
-  def apply(artifactPatterns: String*): Patterns = Patterns(true, artifactPatterns: _*)
+  def apply(artifactPatterns: String*): Patterns = Patterns(true, artifactPatterns*)
   def apply(isMavenCompatible: Boolean, artifactPatterns: String*): Patterns = {
     val patterns = artifactPatterns.toVector
     Patterns()
@@ -54,7 +54,7 @@ private[librarymanagement] trait SshBasedRepositoryExtra {
   type RepositoryType <: SshBasedRepository
   protected def copy(connection: SshConnection): RepositoryType
   private def copy(authentication: SshAuthentication): RepositoryType =
-    copy(connection withAuthentication authentication)
+    copy(connection.withAuthentication(authentication))
 
   /** Configures this to use the specified user name and password when connecting to the remote repository. */
   def as(user: String, password: String): RepositoryType = as(user, Some(password))

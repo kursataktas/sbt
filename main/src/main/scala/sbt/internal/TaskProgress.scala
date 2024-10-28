@@ -31,11 +31,11 @@ private[sbt] class TaskProgress(
     with AutoCloseable {
   private val lastTaskCount = new AtomicInteger(0)
   private val reportLoop = new AtomicReference[AutoCloseable]
-  private val active = new ConcurrentHashMap[TaskId[_], AutoCloseable]
+  private val active = new ConcurrentHashMap[TaskId[?], AutoCloseable]
   private val nextReport = new AtomicReference(Deadline.now)
   private val scheduler =
     Executors.newSingleThreadScheduledExecutor(r => new Thread(r, "sbt-progress-report-scheduler"))
-  private val pending = new java.util.Vector[java.util.concurrent.Future[_]]
+  private val pending = new java.util.Vector[java.util.concurrent.Future[?]]
   private val closed = new AtomicBoolean(false)
   private def schedule[R](duration: FiniteDuration, recurring: Boolean)(f: => R): AutoCloseable =
     if (!closed.get) {
@@ -167,7 +167,7 @@ private[sbt] class TaskProgress(
     val ltc = lastTaskCount.get
     if (currentTasks.nonEmpty || ltc != 0) {
       val currentTasksCount = currentTasks.size
-      def event(tasks: Vector[(TaskId[_], Long)]): ProgressEvent = {
+      def event(tasks: Vector[(TaskId[?], Long)]): ProgressEvent = {
         if (tasks.nonEmpty) nextReport.set(Deadline.now + sleepDuration)
         val toWrite = tasks.sortBy(_._2)
         val distinct = new java.util.LinkedHashMap[String, ProgressItem]
@@ -190,7 +190,7 @@ private[sbt] class TaskProgress(
     }
   }
 
-  private def getShortName(task: TaskId[_]): String = {
+  private def getShortName(task: TaskId[?]): String = {
     val name = taskName(task)
     name.lastIndexOf('/') match {
       case -1 => name
@@ -202,9 +202,9 @@ private[sbt] class TaskProgress(
 
   }
   private def filter(
-      tasks: Vector[(TaskId[_], Long)]
-  ): (Vector[(TaskId[_], Long)], Boolean) = {
-    tasks.foldLeft((Vector.empty[(TaskId[_], Long)], false)) {
+      tasks: Vector[(TaskId[?], Long)]
+  ): (Vector[(TaskId[?], Long)], Boolean) = {
+    tasks.foldLeft((Vector.empty[(TaskId[?], Long)], false)) {
       case ((tasks, skip), pair @ (t, _)) =>
         val shortName = getShortName(t)
         val newSkip = skip || skipReportTasks.contains(shortName)

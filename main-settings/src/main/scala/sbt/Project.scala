@@ -38,7 +38,7 @@ sealed trait ProjectDefinition[PR <: ProjectReference] {
    * The explicitly defined sequence of settings that configure this project.
    * These do not include the automatically appended settings as configured by `auto`.
    */
-  def settings: Seq[Setting[_]]
+  def settings: Seq[Setting[?]]
 
   /**
    * The references to projects that are aggregated by this project.
@@ -65,7 +65,7 @@ sealed trait ProjectDefinition[PR <: ProjectReference] {
   /** The [[AutoPlugin]]s enabled for this project.  This value is only available on a loaded Project. */
   private[sbt] def autoPlugins: Seq[AutoPlugin]
 
-  private[sbt] def commonSettings: Seq[Setting[_]]
+  private[sbt] def commonSettings: Seq[Setting[?]]
 
   override final def hashCode: Int = id.hashCode ^ base.hashCode ^ getClass.hashCode
 
@@ -142,7 +142,7 @@ sealed trait Project extends ProjectDefinition[ProjectReference] with CompositeP
 
   /** Appends settings to the current settings sequence for this project. */
   def settings(ss: Def.SettingsDefinition*): Project =
-    copy(settings = (settings: Seq[Def.Setting[_]]) ++ Def.settings(ss: _*))
+    copy(settings = (settings: Seq[Def.Setting[?]]) ++ Def.settings(ss*))
 
   /**
    * Sets the [[AutoPlugin]]s of this project.
@@ -163,7 +163,7 @@ sealed trait Project extends ProjectDefinition[ProjectReference] with CompositeP
   /** Definitively set the [[ProjectOrigin]] for this project. */
   private[sbt] def setProjectOrigin(origin: ProjectOrigin): Project = copy(projectOrigin = origin)
 
-  private[sbt] def setCommonSettings(settings: Seq[Setting[_]]): Project =
+  private[sbt] def setCommonSettings(settings: Seq[Setting[?]]): Project =
     copy(commonSettings = settings)
 
   /**
@@ -177,15 +177,15 @@ sealed trait Project extends ProjectDefinition[ProjectReference] with CompositeP
   def withId(id: String): Project = copy(id = id)
 
   /** Sets the base directory for this project. */
-  def in(dir: File): Project = copy(base = dir)
+  infix def in(dir: File): Project = copy(base = dir)
 
   private[sbt] def copy(
       id: String = id,
       base: File = base,
       aggregate: Seq[ProjectReference] = aggregate,
       dependencies: Seq[ClasspathDep[ProjectReference]] = dependencies,
-      settings: Seq[Setting[_]] = settings,
-      commonSettings: Seq[Setting[_]] = commonSettings,
+      settings: Seq[Setting[?]] = settings,
+      commonSettings: Seq[Setting[?]] = commonSettings,
       configurations: Seq[Configuration] = configurations,
       plugins: Plugins = plugins,
       autoPlugins: Seq[AutoPlugin] = autoPlugins,
@@ -255,8 +255,8 @@ object Project:
       val base: File,
       val aggregate: Seq[PR],
       val dependencies: Seq[ClasspathDep[PR]],
-      val settings: Seq[Def.Setting[_]],
-      val commonSettings: Seq[Def.Setting[_]],
+      val settings: Seq[Def.Setting[?]],
+      val commonSettings: Seq[Def.Setting[?]],
       val configurations: Seq[Configuration],
       val plugins: Plugins,
       val autoPlugins: Seq[AutoPlugin],
@@ -273,8 +273,8 @@ object Project:
       base: File,
       aggregate: Seq[ProjectReference],
       dependencies: Seq[ClasspathDep[ProjectReference]],
-      settings: Seq[Def.Setting[_]],
-      commonSettings: Seq[Def.Setting[_]],
+      settings: Seq[Def.Setting[?]],
+      commonSettings: Seq[Def.Setting[?]],
       configurations: Seq[Configuration],
       plugins: Plugins,
       autoPlugins: Seq[AutoPlugin],
@@ -301,8 +301,8 @@ object Project:
       base: File,
       aggregate: Seq[ProjectRef],
       dependencies: Seq[ClasspathDep[ProjectRef]],
-      settings: Seq[Def.Setting[_]],
-      commonSettings: Seq[Def.Setting[_]],
+      settings: Seq[Def.Setting[?]],
+      commonSettings: Seq[Def.Setting[?]],
       configurations: Seq[Configuration],
       plugins: Plugins,
       autoPlugins: Seq[AutoPlugin],
@@ -328,23 +328,23 @@ object Project:
   private def validProjectIDStart(id: String): Boolean =
     DefaultParsers.parse(id, DefaultParsers.IDStart).isRight
 
-  def fillTaskAxis(scoped: ScopedKey[_]): ScopedKey[_] =
+  def fillTaskAxis(scoped: ScopedKey[?]): ScopedKey[?] =
     ScopedKey(Scope.fillTaskAxis(scoped.scope, scoped.key), scoped.key)
 
   def mapScope(f: Scope => Scope): [a] => ScopedKey[a] => ScopedKey[a] =
     [a] => (k: ScopedKey[a]) => ScopedKey(f(k.scope), k.key)
 
-  def transform(g: Scope => Scope, ss: Seq[Def.Setting[_]]): Seq[Def.Setting[_]] =
+  def transform(g: Scope => Scope, ss: Seq[Def.Setting[?]]): Seq[Def.Setting[?]] =
     val f = mapScope(g)
     ss.map { setting =>
       setting.mapKey(f).mapReferenced(f)
     }
 
-  def transformRef(g: Scope => Scope, ss: Seq[Def.Setting[_]]): Seq[Def.Setting[_]] =
+  def transformRef(g: Scope => Scope, ss: Seq[Def.Setting[?]]): Seq[Def.Setting[?]] =
     val f = mapScope(g)
-    ss.map(_ mapReferenced f)
+    ss.map(_.mapReferenced(f))
 
-  def inThisBuild(ss: Seq[Setting[_]]): Seq[Setting[_]] =
+  def inThisBuild(ss: Seq[Setting[?]]): Seq[Setting[?]] =
     inScope(ThisScope.copy(project = Select(ThisBuild)))(ss)
 
   private[sbt] def inThisBuild[T](i: Initialize[T]): Initialize[T] =
@@ -353,13 +353,13 @@ object Project:
   private[sbt] def inConfig[T](conf: Configuration, i: Initialize[T]): Initialize[T] =
     inScope(ThisScope.copy(config = Select(conf)), i)
 
-  def inTask(t: Scoped)(ss: Seq[Setting[_]]): Seq[Setting[_]] =
+  def inTask(t: Scoped)(ss: Seq[Setting[?]]): Seq[Setting[?]] =
     inScope(ThisScope.copy(task = Select(t.key)))(ss)
 
   private[sbt] def inTask[A](t: Scoped, i: Initialize[A]): Initialize[A] =
     inScope(ThisScope.copy(task = Select(t.key)), i)
 
-  def inScope(scope: Scope)(ss: Seq[Setting[_]]): Seq[Setting[_]] =
+  def inScope(scope: Scope)(ss: Seq[Setting[?]]): Seq[Setting[?]] =
     Project.transform(Scope.replaceThis(scope), ss)
 
   private[sbt] def inScope[A](scope: Scope, i: Initialize[A]): Initialize[A] =

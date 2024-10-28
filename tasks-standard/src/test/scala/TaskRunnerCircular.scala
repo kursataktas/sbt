@@ -14,10 +14,10 @@ import TaskGen._
 
 object TaskRunnerCircularTest extends Properties("TaskRunner Circular") {
   property("Catches circular references") = forAll(MaxTasksGen, MaxWorkersGen) {
-    checkCircularReferences _
+    checkCircularReferences
   }
   property("Allows references to completed tasks") = forAllNoShrink(MaxTasksGen, MaxWorkersGen) {
-    allowedReference _
+    allowedReference
   }
   final def allowedReference(intermediate: Int, workers: Int) = {
     val top = task(intermediate).named("top")

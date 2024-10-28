@@ -600,7 +600,7 @@ trait Appender extends AutoCloseable {
   }
 
   private def appendMessageContent(level: Level.Value, o: AnyRef): Unit = {
-    def appendEvent(oe: ObjectEvent[_]): Unit = {
+    def appendEvent(oe: ObjectEvent[?]): Unit = {
       val contentType = oe.contentType
       contentType match {
         case "sbt.internal.util.TraceEvent" => appendTraceEvent(oe.message.asInstanceOf[TraceEvent])

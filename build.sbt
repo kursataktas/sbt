@@ -1024,6 +1024,7 @@ lazy val sbtClientProj = (project in file("client"))
     Utils.noPublish,
     name := "sbt-client",
     mimaPreviousArtifacts := Set.empty,
+    bspEnabled := false,
     crossPaths := false,
     exportJars := true,
     libraryDependencies += jansi,

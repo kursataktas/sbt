@@ -15,7 +15,7 @@ final class ResolveException(
       failed,
       Map(failed map { m =>
         m -> Nil
-      }: _*)
+      }*)
     )
 }
 
@@ -36,7 +36,7 @@ object UnresolvedWarning {
     def modulePosition(m0: ModuleID): Option[SourcePosition] =
       config.modulePositions.find { case (m, _) =>
         (m.organization == m0.organization) &&
-        (m0.name startsWith m.name) &&
+        (m0.name.startsWith(m.name)) &&
         (m.revision == m0.revision)
       } map { case (_, p) =>
         p

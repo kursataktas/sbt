@@ -104,7 +104,7 @@ object ResolutionRun {
           params.params
             .addForceVersion(
               (if (isSandboxConfig) Nil
-               else params.interProjectDependencies.map(_.moduleVersion)): _*
+               else params.interProjectDependencies.map(_.moduleVersion))*
             )
             .withForceScalaVersion(params.autoScalaLibOpt.nonEmpty)
             .withScalaVersionOpt(params.autoScalaLibOpt.map(_._2))

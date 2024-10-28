@@ -102,7 +102,7 @@ class CrossJavaTest extends AnyFunSuite with Diagrams {
     val conf = new SdkmanDiscoverConfig {
       override def candidates() = Vector("11.0.2.hs-adpt")
     }
-    val hs = CrossJava.expandJavaHomes(ListMap(conf.javaHomes: _*))
+    val hs = CrossJava.expandJavaHomes(ListMap(conf.javaHomes*))
     assert(hs.contains("11"))
   }
 

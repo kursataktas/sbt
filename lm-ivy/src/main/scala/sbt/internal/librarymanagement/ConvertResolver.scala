@@ -51,7 +51,7 @@ private[sbt] object ConvertResolver {
    */
   private object ChecksumFriendlyURLResolver {
     import java.lang.reflect.AccessibleObject
-    private def reflectiveLookup[A <: AccessibleObject](f: Class[_] => A): Option[A] =
+    private def reflectiveLookup[A <: AccessibleObject](f: Class[?] => A): Option[A] =
       try {
         val cls = classOf[RepositoryResolver]
         val thing = f(cls)
@@ -377,8 +377,8 @@ private[sbt] object ConvertResolver {
       else BasicResolver.DESCRIPTOR_REQUIRED
     )
     resolver.setCheckconsistency(!patterns.skipConsistencyCheck)
-    patterns.ivyPatterns.foreach(p => resolver.addIvyPattern(settings substitute p))
-    patterns.artifactPatterns.foreach(p => resolver.addArtifactPattern(settings substitute p))
+    patterns.ivyPatterns.foreach(p => resolver.addIvyPattern(settings.substitute(p)))
+    patterns.artifactPatterns.foreach(p => resolver.addArtifactPattern(settings.substitute(p)))
   }
 
   /**
@@ -452,7 +452,7 @@ private[sbt] object ConvertResolver {
       catch {
         case e: java.io.IOException if e.getMessage.contains("destination already exists") =>
           val overwriteWarning =
-            if (destination contains "-SNAPSHOT") s"Attempting to overwrite $destination"
+            if destination.contains("-SNAPSHOT") then s"Attempting to overwrite $destination"
             else
               s"Attempting to overwrite $destination (non-SNAPSHOT)\n\tYou need to remove it from the cache manually to take effect."
           import org.apache.ivy.util.Message

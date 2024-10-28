@@ -38,7 +38,7 @@ object Aggregation {
       state: State
   )
 
-  final case class KeyValue[+T](key: ScopedKey[_], value: T)
+  final case class KeyValue[+T](key: ScopedKey[?], value: T)
 
   def defaultShow(state: State, showTasks: Boolean): ShowConfig =
     ShowConfig(
@@ -48,8 +48,8 @@ object Aggregation {
       success = true
     )
 
-  def printSettings(xs: Seq[KeyValue[_]], print: String => Unit)(implicit
-      display: Show[ScopedKey[_]]
+  def printSettings(xs: Seq[KeyValue[?]], print: String => Unit)(implicit
+      display: Show[ScopedKey[?]]
   ): Unit =
     xs match {
       case KeyValue(_, x: Seq[_]) :: Nil => print(x.mkString("* ", "\n* ", ""))
@@ -68,7 +68,7 @@ object Aggregation {
       s: State,
       ps: Values[Parser[Task[T]]],
       show: ShowConfig
-  )(implicit display: Show[ScopedKey[_]]): Parser[() => State] =
+  )(implicit display: Show[ScopedKey[?]]): Parser[() => State] =
     Command.applyEffect(seqParser(ps))(ts => runTasks(s, ts, DummyTaskMap(Nil), show))
 
   private def showRun[A](complete: Complete[A], show: ShowConfig)(implicit
@@ -125,7 +125,7 @@ object Aggregation {
       ts: Values[Task[A1]],
       extra: DummyTaskMap,
       show: ShowConfig
-  )(using display: Show[ScopedKey[_]]): State =
+  )(using display: Show[ScopedKey[?]]): State =
     val complete = timedRun[A1](s, ts, extra)
     showRun(complete, show)
     complete.results match
@@ -187,7 +187,7 @@ object Aggregation {
       s: State,
       inputs: Values[InputTask[I]],
       show: ShowConfig
-  )(implicit display: Show[ScopedKey[_]]): Parser[() => State] = {
+  )(implicit display: Show[ScopedKey[?]]): Parser[() => State] = {
     val parsers =
       for (KeyValue(k, it) <- inputs)
         yield it.parser(s).map(v => KeyValue(k, v))
@@ -196,24 +196,24 @@ object Aggregation {
     }
   }
 
-  def evaluatingParser(s: State, show: ShowConfig)(keys: Seq[KeyValue[_]])(implicit
-      display: Show[ScopedKey[_]]
+  def evaluatingParser(s: State, show: ShowConfig)(keys: Seq[KeyValue[?]])(implicit
+      display: Show[ScopedKey[?]]
   ): Parser[() => State] = {
 
     // to make the call sites clearer
-    def separate[L](in: Seq[KeyValue[_]])(
-        f: KeyValue[_] => Either[KeyValue[L], KeyValue[_]]
-    ): (Seq[KeyValue[L]], Seq[KeyValue[_]]) =
+    def separate[L](in: Seq[KeyValue[?]])(
+        f: KeyValue[?] => Either[KeyValue[L], KeyValue[?]]
+    ): (Seq[KeyValue[L]], Seq[KeyValue[?]]) =
       Util.separate(in)(f)
 
     val kvs = keys.toList
     if (kvs.isEmpty) failure("No such setting/task")
     else {
-      val (inputTasks, other) = separate[InputTask[_]](kvs) {
+      val (inputTasks, other) = separate[InputTask[?]](kvs) {
         case KeyValue(k, v: InputTask[_]) => Left(KeyValue(k, v))
         case kv                           => Right(kv)
       }
-      val (tasks, settings) = separate[Task[_]](other) {
+      val (tasks, settings) = separate[Task[?]](other) {
         case KeyValue(k, v: Task[_]) => Left(KeyValue(k, v))
         case kv                      => Right(kv)
       }
@@ -280,7 +280,7 @@ object Aggregation {
 
   def reverseAggregatedKeys[T](
       key: ScopedKey[T],
-      extra: BuildUtil[_],
+      extra: BuildUtil[?],
       mask: ScopeMask
   ): Seq[ScopedKey[T]] =
     projectAggregates(key.scope.project.toOption, extra, reverse = true) flatMap { ref =>
@@ -292,7 +292,7 @@ object Aggregation {
 
   def aggregatedKeys[T](
       key: ScopedKey[T],
-      extra: BuildUtil[_],
+      extra: BuildUtil[?],
       mask: ScopeMask
   ): Seq[ScopedKey[T]] =
     projectAggregates(key.scope.project.toOption, extra, reverse = false) map { ref =>
@@ -301,7 +301,7 @@ object Aggregation {
       ScopedKey(resolved, key.key)
     }
 
-  def aggregationEnabled(key: ScopedKey[_], data: Settings[Scope]): Boolean =
+  def aggregationEnabled(key: ScopedKey[?], data: Settings[Scope]): Boolean =
     (Scope.fillTaskAxis(key.scope, key.key) / Keys.aggregate).get(data).getOrElse(true)
   private[sbt] val suppressShow =
     AttributeKey[Boolean]("suppress-aggregation-show", Int.MaxValue)

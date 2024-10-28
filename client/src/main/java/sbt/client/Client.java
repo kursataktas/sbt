@@ -13,7 +13,7 @@ import java.nio.file.Paths;
 import org.fusesource.jansi.AnsiConsole;
 
 public class Client {
-  public static void main(final String[] args) {
+  public static void main(String[] args) {
     boolean isWin = System.getProperty("os.name").toLowerCase().startsWith("win");
     try {
       if (isWin) AnsiConsole.systemInstall();

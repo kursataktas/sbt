@@ -100,7 +100,7 @@ sealed trait RichParser[A] {
    * Apply the original parser, but only succeed if `o` also succeeds. Note that `o` does not need
    * to consume the same amount of input to satisfy this condition.
    */
-  def &(o: Parser[_]): Parser[A]
+  def &(o: Parser[?]): Parser[A]
 
   /** Explicitly defines the completions for the original Parser. */
   def examples(s: String*): Parser[A]
@@ -160,11 +160,11 @@ object Parser extends ParserMain:
     def isFailure: Boolean
     def isValid: Boolean
     def errors: Seq[String]
-    def or[B >: T](b: => Result[B]): Result[B]
+    infix def or[B >: T](b: => Result[B]): Result[B]
     def either[B](b: => Result[B]): Result[Either[T, B]]
     def map[B](f: T => B): Result[B]
     def flatMap[B](f: T => Result[B]): Result[B]
-    def &&(b: => Result[_]): Result[T]
+    infix def &&(b: => Result[?]): Result[T]
     def filter(f: T => Boolean, msg: => String): Result[T]
     def seq[B](b: => Result[B]): Result[(T, B)] = app(b)((m, n) => (m, n))
     def app[B, C](b: => Result[B])(f: (T, B) => C): Result[C]
@@ -181,8 +181,8 @@ object Parser extends ParserMain:
       case Value(bv)     => Value(f(value, bv))
     }
 
-    def &&(b: => Result[_]): Result[T] = b match { case f: Failure => f; case _ => this }
-    def or[B >: T](b: => Result[B]): Result[B] = this
+    infix def &&(b: => Result[?]): Result[T] = b match { case f: Failure => f; case _ => this }
+    infix def or[B >: T](b: => Result[B]): Result[B] = this
     def either[B](b: => Result[B]): Result[Either[T, B]] = Value(Left(value))
     def map[B](f: T => B): Result[B] = Value(f(value))
     def flatMap[B](f: T => Result[B]): Result[B] = f(value)
@@ -198,7 +198,7 @@ object Parser extends ParserMain:
     def map[B](f: Nothing => B) = this
     def flatMap[B](f: Nothing => Result[B]) = this
 
-    def or[B](b: => Result[B]): Result[B] = b match {
+    infix def or[B](b: => Result[B]): Result[B] = b match {
       case v: Value[B] => v
       case f: Failure  => if (definitive) this else this ++ f
     }
@@ -210,7 +210,7 @@ object Parser extends ParserMain:
 
     def filter(f: Nothing => Boolean, msg: => String) = this
     def app[B, C](b: => Result[B])(f: (Nothing, B) => C): Result[C] = this
-    def &&(b: => Result[_]) = this
+    infix def &&(b: => Result[?]) = this
     def toEither = Left(() => errors)
 
     private[sbt] def ++(f: Failure) = mkFailures(errors ++ f.errors)
@@ -263,8 +263,8 @@ object Parser extends ParserMain:
       b.ifValid {
         (a.result, b.result) match {
           case (Some(av), Some(bv)) => success((av, bv))
-          case (Some(av), None)     => b map (bv => (av, bv))
-          case (None, Some(bv))     => a map (av => (av, bv))
+          case (Some(av), None)     => b.map(bv => (av, bv))
+          case (None, Some(bv))     => a.map(av => (av, bv))
           case (None, None)         => new SeqParser(a, b)
         }
       }
@@ -332,7 +332,7 @@ object Parser extends ParserMain:
     }
   }
 
-  def and[T](a: Parser[T], b: Parser[_]): Parser[T] = a.ifValid(b.ifValid(new And(a, b)))
+  def and[T](a: Parser[T], b: Parser[?]): Parser[T] = a.ifValid(b.ifValid(new And(a, b)))
 
 end Parser
 
@@ -349,7 +349,7 @@ trait ParserMain {
     def map[B](f: A => B) = mapParser(a, f)
     def id = a
 
-    def ^^^[B](value: B): Parser[B] = a map (_ => value)
+    def ^^^[B](value: B): Parser[B] = a.map(_ => value)
     def ??[B >: A](alt: B): Parser[B] = a.? map { x =>
       x.getOrElse[B](alt)
     }
@@ -358,7 +358,7 @@ trait ParserMain {
     def !!!(msg: String): Parser[A] = onFailure(a, msg)
     def failOnException: Parser[A] = trapAndFail(a)
 
-    def &(o: Parser[_]) = and(a, o)
+    def &(o: Parser[?]) = and(a, o)
     def examples(s: String*): Parser[A] = examples(s.toSet)
 
     def examples(s: Set[String], check: Boolean = false): Parser[A] =
@@ -424,12 +424,12 @@ trait ParserMain {
    * Presents a Char range as a Parser. A single Char is parsed only if it is in the given range.
    */
   def range(r: collection.immutable.NumericRange[Char], label: String): Parser[Char] =
-    charClass(r contains _, label).examples(r.map(_.toString): _*)
+    charClass(r contains _, label).examples(r.map(_.toString)*)
 
   /** Defines a Parser that parses a single character only if it is contained in `legal`. */
   def chars(legal: String): Parser[Char] = {
     val set = legal.toSet
-    charClass(set, "character in '" + legal + "'") examples (set.map(_.toString))
+    charClass(set, "character in '" + legal + "'").examples(set.map(_.toString))
   }
 
   /**
@@ -481,7 +481,7 @@ trait ParserMain {
    *
    * See also [[sampleParse]] and [[sampleCompletions]].
    */
-  def sample(str: String, parser: Parser[_], completions: Boolean = false): Unit =
+  def sample(str: String, parser: Parser[?], completions: Boolean = false): Unit =
     if (completions) sampleCompletions(str, parser) else sampleParse(str, parser)
 
   /**
@@ -489,7 +489,7 @@ trait ParserMain {
    * the result of parsing is printed using the result's `toString` method. If parsing fails, the
    * error message is displayed.
    */
-  def sampleParse(str: String, parser: Parser[_]): Unit =
+  def sampleParse(str: String, parser: Parser[?]): Unit =
     parse(str, parser) match {
       case Left(msg) => println(msg)
       case Right(v)  => println(v)
@@ -500,7 +500,7 @@ trait ParserMain {
    * the available completions are displayed on separate lines. If parsing fails, the error message
    * is displayed.
    */
-  def sampleCompletions(str: String, parser: Parser[_], level: Int = 1): Unit =
+  def sampleCompletions(str: String, parser: Parser[?], level: Int = 1): Unit =
     Parser.completions(parser, str, level).get foreach println
 
   // intended to be temporary pending proper error feedback
@@ -517,7 +517,7 @@ trait ParserMain {
               (nonEmpty, ci)
             }
           else
-            loop(ci, a derive s(ci))
+            loop(ci, a.derive(s((ci))))
       }
     loop(-1, p)
   }
@@ -536,9 +536,9 @@ trait ParserMain {
    * increasing positive numbers corresponding to increasing verbosity. Typically no more than a few
    * levels are defined.
    */
-  def completions(p: Parser[_], s: String, level: Int): Completions =
+  def completions(p: Parser[?], s: String, level: Int): Completions =
     // The x Completions.empty removes any trailing token completions where append.isEmpty
-    apply(p)(s).completions(level) x Completions.empty
+    apply(p)(s).completions(level).x(Completions.empty)
 
   def examples[A](a: Parser[A], completions: Set[String], check: Boolean = false): Parser[A] =
     examples(a, new FixedSetExamples(completions), completions.size, check)
@@ -575,7 +575,7 @@ trait ParserMain {
     } else a
 
   def matched(
-      t: Parser[_],
+      t: Parser[?],
       seen: Vector[Char] = Vector.empty,
       partial: Boolean = false
   ): Parser[String] =
@@ -636,7 +636,7 @@ trait ParserMain {
     case (_, _)                     => new HomParser(a, b)
   }
 
-  def not(p: Parser[_], failMessage: String): Parser[Unit] = p.result match {
+  def not(p: Parser[?], failMessage: String): Parser[Unit] = p.result match {
     case None    => new Not(p, failMessage)
     case Some(_) => failure(failMessage)
   }
@@ -698,7 +698,7 @@ private final class TrapAndFail[A](a: Parser[A]) extends ValidParser[A] {
 
   def derive(c: Char) =
     try {
-      trapAndFail(a derive c)
+      trapAndFail(a.derive(c))
     } catch {
       case e: Exception => Invalid(fail(e))
     }
@@ -722,7 +722,7 @@ private final class OnFailure[A](a: Parser[A], message: String) extends ValidPar
     case _: Failure => mkFailure(message); case v: Value[A] => v
   }
 
-  def derive(c: Char) = onFailure(a derive c, message)
+  def derive(c: Char) = onFailure(a.derive(c), message)
   def completions(level: Int) = a.completions(level)
   override def toString = "(" + a + " !!! \"" + message + "\" )"
   override def isTokenStart = a.isTokenStart
@@ -730,7 +730,7 @@ private final class OnFailure[A](a: Parser[A], message: String) extends ValidPar
 
 private final class SeqParser[A, B](a: Parser[A], b: Parser[B]) extends ValidParser[(A, B)] {
   lazy val result = tuple(a.result, b.result)
-  lazy val resultEmpty = a.resultEmpty seq b.resultEmpty
+  lazy val resultEmpty = a.resultEmpty.seq(b.resultEmpty)
 
   def derive(c: Char) = {
     val common = a.derive(c) ~ b
@@ -740,13 +740,13 @@ private final class SeqParser[A, B](a: Parser[A], b: Parser[B]) extends ValidPar
     }
   }
 
-  def completions(level: Int) = a.completions(level) x b.completions(level)
+  def completions(level: Int) = a.completions(level).x(b.completions(level))
   override def toString = "(" + a + " ~ " + b + ")"
 }
 
 private final class HomParser[A](a: Parser[A], b: Parser[A]) extends ValidParser[A] {
   lazy val result = tuple(a.result, b.result) map (_._1)
-  def derive(c: Char) = (a derive c) | (b derive c)
+  def derive(c: Char) = a.derive(c) | b.derive(c)
   lazy val resultEmpty = a.resultEmpty or b.resultEmpty
   def completions(level: Int) = a.completions(level) ++ b.completions(level)
   override def toString = "(" + a + " | " + b + ")"
@@ -754,8 +754,8 @@ private final class HomParser[A](a: Parser[A], b: Parser[A]) extends ValidParser
 
 private final class HetParser[A, B](a: Parser[A], b: Parser[B]) extends ValidParser[Either[A, B]] {
   lazy val result = tuple(a.result, b.result) map { case (a, _) => Left(a) }
-  def derive(c: Char) = (a derive c) || (b derive c)
-  lazy val resultEmpty = a.resultEmpty either b.resultEmpty
+  def derive(c: Char) = a.derive(c) || b.derive(c)
+  lazy val resultEmpty = a.resultEmpty.either(b.resultEmpty)
   def completions(level: Int) = a.completions(level) ++ b.completions(level)
   override def toString = "(" + a + " || " + b + ")"
 }
@@ -777,25 +777,25 @@ private final class ParserSeq[T](a: Seq[Parser[T]], errors: => Seq[String])
   }
 
   def completions(level: Int) = a.map(_.completions(level)).reduceLeft(_ ++ _)
-  def derive(c: Char) = seq0(a.map(_ derive c), errors)
+  def derive(c: Char) = seq0(a.map(_.derive(c)), errors)
 
   override def toString = "seq(" + a + ")"
 }
 
 private final class BindParser[A, B](a: Parser[A], f: A => Parser[B]) extends ValidParser[B] {
   lazy val result = a.result flatMap (av => f(av).result)
-  lazy val resultEmpty = a.resultEmpty flatMap (av => f(av).resultEmpty)
+  lazy val resultEmpty = a.resultEmpty.flatMap(av => f(av).resultEmpty)
 
   def completions(level: Int) =
     a.completions(level) flatMap { c =>
       apply(a)(c.append).resultEmpty match {
         case _: Failure => Completions.strict(Set.empty + c)
-        case Value(av)  => c x f(av).completions(level)
+        case Value(av)  => c.x(f(av).completions(level))
       }
     }
 
   def derive(c: Char) = {
-    val common = a derive c flatMap f
+    val common = a.derive(c).flatMap(f)
     a.resultEmpty match {
       case Value(av)  => common | derive1(f(av), c)
       case _: Failure => common
@@ -809,8 +809,8 @@ private final class BindParser[A, B](a: Parser[A], f: A => Parser[B]) extends Va
 
 private final class MapParser[A, B](a: Parser[A], f: A => B) extends ValidParser[B] {
   lazy val result = a.result map f
-  lazy val resultEmpty = a.resultEmpty map f
-  def derive(c: Char) = (a derive c) map f
+  lazy val resultEmpty = a.resultEmpty.map(f)
+  def derive(c: Char) = a.derive(c).map(f)
   def completions(level: Int) = a.completions(level)
   override def isTokenStart = a.isTokenStart
   override def toString = "map(" + a + ")"
@@ -822,7 +822,7 @@ private final class Filter[T](p: Parser[T], f: T => Boolean, seen: String, msg: 
   def filterResult(r: Result[T]) = r.filter(f, msg(seen))
   lazy val result = p.result filter f
   lazy val resultEmpty = filterResult(p.resultEmpty)
-  def derive(c: Char) = filterParser(p derive c, f, seen + c, msg)
+  def derive(c: Char) = filterParser(p.derive(c), f, seen + c, msg)
 
   def completions(level: Int) = p.completions(level) filterS { s =>
     filterResult(apply(p)(s).resultEmpty).isValid
@@ -832,10 +832,10 @@ private final class Filter[T](p: Parser[T], f: T => Boolean, seen: String, msg: 
   override def isTokenStart = p.isTokenStart
 }
 
-private final class MatchedString(delegate: Parser[_], seenV: Vector[Char], partial: Boolean)
+private final class MatchedString(delegate: Parser[?], seenV: Vector[Char], partial: Boolean)
     extends ValidParser[String] {
   lazy val seen = seenV.mkString
-  def derive(c: Char) = matched(delegate derive c, seenV :+ c, partial)
+  def derive(c: Char) = matched(delegate.derive(c), seenV :+ c, partial)
   def completions(level: Int) = delegate.completions(level)
   def result = if (delegate.result.isDefined) Some(seen) else None
 
@@ -849,7 +849,7 @@ private final class MatchedString(delegate: Parser[_], seenV: Vector[Char], part
 
 private final class TokenStart[T](delegate: Parser[T], seen: String, complete: TokenCompletions)
     extends ValidParser[T] {
-  def derive(c: Char) = mkToken(delegate derive c, seen + c, complete)
+  def derive(c: Char) = mkToken(delegate.derive(c), seen + c, complete)
 
   def completions(level: Int) = complete match {
     case dc: TokenCompletions.Delegating =>
@@ -863,16 +863,16 @@ private final class TokenStart[T](delegate: Parser[T], seen: String, complete: T
   override def toString = "token('" + complete + ", " + delegate + ")"
 }
 
-private final class And[T](a: Parser[T], b: Parser[_]) extends ValidParser[T] {
+private final class And[T](a: Parser[T], b: Parser[?]) extends ValidParser[T] {
   lazy val result = tuple(a.result, b.result) map { _._1 }
-  def derive(c: Char) = (a derive c) & (b derive c)
+  def derive(c: Char) = a.derive(c) & b.derive(c)
   def completions(level: Int) = a.completions(level).filterS(s => apply(b)(s).resultEmpty.isValid)
   lazy val resultEmpty = a.resultEmpty && b.resultEmpty
   override def toString = "(%s) && (%s)".format(a, b)
 }
 
-private final class Not(delegate: Parser[_], failMessage: String) extends ValidParser[Unit] {
-  def derive(c: Char) = if (delegate.valid) not(delegate derive c, failMessage) else this
+private final class Not(delegate: Parser[?], failMessage: String) extends ValidParser[Unit] {
+  def derive(c: Char) = if (delegate.valid) not(delegate.derive(c), failMessage) else this
   def completions(level: Int) = Completions.empty
   def result = None
 
@@ -914,7 +914,7 @@ private final class ParserWithExamples[T](
 
   def derive(c: Char) =
     examples(
-      delegate derive c,
+      delegate.derive(c),
       exampleSource.withAddedPrefix(c.toString),
       maxNumberOfExamples,
       removeInvalidExamples
@@ -973,7 +973,7 @@ private final class CharacterClass(f: Char => Boolean, label: String) extends Va
 private final class Optional[A](delegate: Parser[A]) extends ValidParser[Option[A]] {
   def result = delegate.result.map(some[A])
   def resultEmpty = Value(None)
-  def derive(c: Char) = (delegate derive c).map(some[A])
+  def derive(c: Char) = delegate.derive(c).map(some[A])
   def completions(level: Int) = Completion.empty +: delegate.completions(level)
   override def toString = delegate.toString + "?"
 }
@@ -991,7 +991,7 @@ private final class Repeat[T](
   def derive(c: Char) =
     partial match {
       case Some(part) =>
-        val partD = repeat(Some(part derive c), repeated, min, max, accumulatedReverse)
+        val partD = repeat(Some(part.derive(c)), repeated, min, max, accumulatedReverse)
         part.resultEmpty match {
           case Value(pv)  => partD | repeatDerive(c, pv :: accumulatedReverse)
           case _: Failure => partD
@@ -1000,16 +1000,16 @@ private final class Repeat[T](
     }
 
   def repeatDerive(c: Char, accRev: List[T]): Parser[Seq[T]] =
-    repeat(Some(repeated derive c), repeated, scala.math.max(0, min - 1), max.decrement, accRev)
+    repeat(Some(repeated.derive(c)), repeated, scala.math.max(0, min - 1), max.decrement, accRev)
 
   def completions(level: Int) = {
     def pow(comp: Completions, exp: Completions, n: Int): Completions =
-      if (n == 1) comp else pow(comp x exp, exp, n - 1)
+      if (n == 1) comp else pow(comp.x(exp), exp, n - 1)
 
     val repC = repeated.completions(level)
     val fin = if (min == 0) Completion.empty +: repC else pow(repC, repC, min)
     partial match {
-      case Some(p) => p.completions(level) x fin
+      case Some(p) => p.completions(level).x(fin)
       case None    => fin
     }
   }
@@ -1023,7 +1023,7 @@ private final class Repeat[T](
         case Some(partialPattern) =>
           partialPattern.resultEmpty.map(_ :: accumulatedReverse)
       }
-    (partialAccumulatedOption app repeatedParseEmpty)((x, y) => (x reverse_::: y): Seq[T])
+    (partialAccumulatedOption.app(repeatedParseEmpty))((x, y) => (x reverse_::: y): Seq[T])
   }
 
   private def repeatedParseEmpty: Result[List[T]] = {

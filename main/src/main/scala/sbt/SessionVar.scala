@@ -24,8 +24,8 @@ object SessionVar {
   // these are required because of inference+manifest limitations
   final case class Key[T](key: ScopedKey[Task[T]])
   final case class Map(map: IMap[Key, Id]) {
-    def get[T](k: ScopedKey[Task[T]]): Option[T] = map get Key(k)
-    def put[T](k: ScopedKey[Task[T]], v: T): Map = Map(map put (Key(k), v))
+    def get[T](k: ScopedKey[Task[T]]): Option[T] = map.get(Key(k))
+    def put[T](k: ScopedKey[Task[T]], v: T): Map = Map(map.put(Key(k), v))
   }
   def emptyMap = Map(IMap.empty)
 
@@ -42,12 +42,12 @@ object SessionVar {
   def clear(s: State): State = s.put(sessionVars, SessionVar.emptyMap)
 
   def get[T](key: ScopedKey[Task[T]], state: State): Option[T] =
-    orEmpty(state get sessionVars) get key
+    orEmpty(state.get(sessionVars)).get(key)
 
   def set[T](key: ScopedKey[Task[T]], state: State, value: T): State =
-    state.update(sessionVars)(om => orEmpty(om) put (key, value))
+    state.update(sessionVars)(om => orEmpty(om).put(key, value))
 
-  def orEmpty(opt: Option[Map]) = opt getOrElse emptyMap
+  def orEmpty(opt: Option[Map]) = opt.getOrElse(emptyMap)
 
   def transform[S](task: Task[S], f: (State, S) => State): Task[S] = {
     val g = (s: S, map: AttributeMap) => map.put(Keys.transformState, (state: State) => f(state, s))

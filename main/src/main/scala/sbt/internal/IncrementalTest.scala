@@ -57,7 +57,7 @@ object IncrementalTest:
       stamper.transitiveStamp(name, extra ++ rds ++ opts) match
         case Some(ts) => Seq(name -> ts)
         case None     => Nil
-    ): _*)
+    )*)
   }
 
   def extraTestDigestsTask: Initialize[Task[Seq[Digest]]] = Def.cachedTask {
@@ -159,8 +159,8 @@ class ClassStamper(
    * @param extraHashes additional information to include into the returning digest
    */
   private[sbt] def transitiveStamp(className: String, extaHashes: Seq[Digest]): Option[Digest] =
-    val digests = SortedSet(analyses.flatMap(internalStamp(className, _, Set.empty)): _*)
-    if digests.nonEmpty then Some(Digest.sha256Hash(digests.toSeq ++ extaHashes: _*))
+    val digests = SortedSet(analyses.flatMap(internalStamp(className, _, Set.empty))*)
+    if digests.nonEmpty then Some(Digest.sha256Hash(digests.toSeq ++ extaHashes*))
     else None
 
   private def internalStamp(
@@ -206,7 +206,7 @@ class ClassStamper(
           //       .map: analyzed =>
           //         0L // analyzed.??? we need a hash here
           val xs = SortedSet(
-            (internalDeps union internalJarDeps union externalDeps union classDigests).toSeq: _*
+            (internalDeps union internalJarDeps union externalDeps union classDigests).toSeq*
           )
           if xs.nonEmpty then stamps(className) = xs
           else ()

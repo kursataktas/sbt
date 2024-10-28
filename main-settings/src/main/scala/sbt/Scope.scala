@@ -18,7 +18,7 @@ import sbt.io.IO
 final case class Scope(
     project: ScopeAxis[Reference],
     config: ScopeAxis[ConfigKey],
-    task: ScopeAxis[AttributeKey[_]],
+    task: ScopeAxis[AttributeKey[?]],
     extra: ScopeAxis[AttributeMap]
 ):
   def rescope(project: Reference): Scope = copy(project = Select(project))
@@ -66,7 +66,7 @@ object Scope:
     case s                                       => s
   }
 
-  def fillTaskAxis(scope: Scope, key: AttributeKey[_]): Scope =
+  def fillTaskAxis(scope: Scope, key: AttributeKey[?]): Scope =
     scope.task match {
       case _: Select[_] => scope
       case _            => scope.copy(task = Select(key))
@@ -103,7 +103,7 @@ object Scope:
     if (!uri.isAbsolute && current.isOpaque && uri.getSchemeSpecificPart == ".")
       current // this handles the shortcut of referring to the current build using "."
     else
-      IO.directoryURI(current resolve uri)
+      IO.directoryURI(current.resolve(uri))
 
   def resolveReference(
       current: URI,
@@ -264,7 +264,7 @@ object Scope:
       rootProject: URI => String,
       projectInherit: ProjectRef => Seq[ProjectRef],
       configInherit: (ResolvedReference, ConfigKey) => Seq[ConfigKey],
-      taskInherit: AttributeKey[_] => Seq[AttributeKey[_]],
+      taskInherit: AttributeKey[?] => Seq[AttributeKey[?]],
       extraInherit: (ResolvedReference, AttributeMap) => Seq[AttributeMap]
   ): Scope => Seq[Scope] =
     delegates(
@@ -285,7 +285,7 @@ object Scope:
       rootProject: URI => String,
       projectInherit: ProjectRef => Seq[ProjectRef],
       configInherit: (ResolvedReference, ConfigKey) => Seq[ConfigKey],
-      taskInherit: AttributeKey[_] => Seq[AttributeKey[_]],
+      taskInherit: AttributeKey[?] => Seq[AttributeKey[?]],
   ): Scope => Seq[Scope] = {
     val index = delegates(refs, configurations, projectInherit, configInherit)
     scope => indexedDelegates(resolve, index, rootProject, taskInherit)(scope)
@@ -296,7 +296,7 @@ object Scope:
       resolve: Reference => ResolvedReference,
       index: DelegateIndex,
       rootProject: URI => String,
-      taskInherit: AttributeKey[_] => Seq[AttributeKey[_]],
+      taskInherit: AttributeKey[?] => Seq[AttributeKey[?]],
       extraInherit: (ResolvedReference, AttributeMap) => Seq[AttributeMap]
   )(rawScope: Scope): Seq[Scope] =
     indexedDelegates(resolve, index, rootProject, taskInherit)(rawScope)
@@ -305,7 +305,7 @@ object Scope:
       resolve: Reference => ResolvedReference,
       index: DelegateIndex,
       rootProject: URI => String,
-      taskInherit: AttributeKey[_] => Seq[AttributeKey[_]],
+      taskInherit: AttributeKey[?] => Seq[AttributeKey[?]],
   )(rawScope: Scope): Seq[Scope] = {
     val scope = Scope.replaceThis(GlobalScope)(rawScope)
 

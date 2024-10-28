@@ -22,7 +22,7 @@ class CacheIvyTest extends Properties("CacheIvy") {
   import sjsonnew.support.scalajson.unsafe.Converter
 
   private class InMemoryStore(converter: SupportConverter[JValue]) extends CacheStore {
-    private var content: JValue = _
+    private var content: JValue = scala.compiletime.uninitialized
     override def delete(): Unit = ()
     override def close(): Unit = ()
 
@@ -131,6 +131,6 @@ class CacheIvyTest extends Properties("CacheIvy") {
 
     }
     import sbt.librarymanagement.LibraryManagementCodec._
-    cachePreservesEquality(m, eq _, str)
+    cachePreservesEquality(m, eq, str)
   }
 }

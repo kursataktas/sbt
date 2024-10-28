@@ -62,10 +62,10 @@ object ParserTest extends Properties("Completing Parser") {
     (("token '" + in + "'") |: checkOne(in, nested, expect)) &&
       (("display '" + in + "'") |: checkOne(in, nestedDisplay, expectDisplay))
 
-  def checkOne(in: String, parser: Parser[_], expect: Completion): Prop =
+  def checkOne(in: String, parser: Parser[?], expect: Completion): Prop =
     completions(parser, in, 1) == Completions.single(expect)
 
-  def checkAll(in: String, parser: Parser[_], expect: Completions): Prop = {
+  def checkAll(in: String, parser: Parser[?], expect: Completions): Prop = {
     val cs = completions(parser, in, 1)
     ("completions: " + cs) |: ("Expected: " + expect) |: (cs == expect: Prop)
   }
@@ -74,7 +74,7 @@ object ParserTest extends Properties("Completing Parser") {
     (("token '" + in + "'") |: checkInv(in, nested)) &&
       (("display '" + in + "'") |: checkInv(in, nestedDisplay))
 
-  def checkInv(in: String, parser: Parser[_]): Prop = {
+  def checkInv(in: String, parser: Parser[?]): Prop = {
     val cs = completions(parser, in, 1)
     ("completions: " + cs) |: (cs == Completions.nil: Prop)
   }
@@ -103,7 +103,7 @@ object ParserTest extends Properties("Completing Parser") {
     checkOne("asdf", token(any.+.examples("asdf", "qwer")), Completion.suggestion(""))
 
   val colors = Set("blue", "green", "red")
-  val base = (seen: Seq[String]) => token(ID examples (colors -- seen))
+  val base = (seen: Seq[String]) => token(ID.examples(colors -- seen))
   val sep = token(Space)
   val repeat = repeatDep(base, sep)
   def completionStrings(ss: Set[String]) = Completions(ss map (Completion.token("", _)))

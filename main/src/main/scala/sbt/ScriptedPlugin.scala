@@ -55,12 +55,12 @@ object ScriptedPlugin extends AutoPlugin {
   }
   import autoImport._
 
-  override lazy val globalSettings: Seq[Setting[_]] = Seq(
+  override lazy val globalSettings: Seq[Setting[?]] = Seq(
     scriptedBufferLog := true,
     scriptedLaunchOpts := Seq(),
   )
 
-  override lazy val projectSettings: Seq[Setting[_]] = Seq(
+  override lazy val projectSettings: Seq[Setting[?]] = Seq(
     ivyConfigurations ++= Seq(ScriptedConf, ScriptedLaunchConf),
     scriptedSbt := (pluginCrossBuild / sbtVersion).value,
     sbtLauncher := getJars(ScriptedLaunchConf)
@@ -161,10 +161,10 @@ object ScriptedPlugin extends AutoPlugin {
       } yield files map (f => s"$group/$f")
 
     val testID = (for (group <- groupP; name <- nameP(group)) yield (group, name))
-    val testIdAsGroup = matched(testID) map (test => Seq(test))
+    val testIdAsGroup = matched(testID).map(test => Seq(test))
 
     // (token(Space) ~> matched(testID)).*
-    (token(Space) ~> (PagedIds | testIdAsGroup)).* map (_.flatten)
+    (token(Space) ~> (PagedIds | testIdAsGroup)).*.map(_.flatten)
   }
 
   private[sbt] def scriptedTask: Initialize[InputTask[Unit]] =

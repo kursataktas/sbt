@@ -38,7 +38,7 @@ enum Action[A]:
   //  FlatMapped[A, K](alist.transform(in, g), g.fn[A] compose f, alist)
 
   /** A computation `in` that requires other tasks `deps` to be evaluated first. */
-  case DependsOn[A](in: Task[A], deps: Seq[Task[_]]) extends Action[A]
+  case DependsOn[A](in: Task[A], deps: Seq[Task[?]]) extends Action[A]
   // private[sbt] def mapTask(g: Task ~> Task) = DependsOn[A](g(in), deps.map(t => g(t)))
 
   /**

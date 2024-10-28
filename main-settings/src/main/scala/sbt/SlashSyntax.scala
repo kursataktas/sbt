@@ -74,7 +74,7 @@ object SlashSyntax:
   }
 
   sealed trait HasSlashKeyOrAttrKey extends HasSlashKey {
-    def /(key: AttributeKey[_]): Scope = scope.rescope(key)
+    def /(key: AttributeKey[?]): Scope = scope.rescope(key)
   }
 
   /** RichReference wraps a reference to provide the `/` operator for scoping. */
@@ -91,7 +91,7 @@ object SlashSyntax:
   /** RichConfiguration wraps a configuration to provide the `/` operator for scoping. */
   final class RichConfiguration(protected val scope: Scope) extends HasSlashKeyOrAttrKey {
     // This is for handling `Zero / Zero / Zero / name`.
-    def /(taskAxis: ScopeAxis[AttributeKey[_]]): Scope =
+    def /(taskAxis: ScopeAxis[AttributeKey[?]]): Scope =
       scope.copy(task = taskAxis)
   }
 

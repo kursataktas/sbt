@@ -62,9 +62,9 @@ object AddSettings {
 
   /** Combines two automatic setting configurations. */
   def append(a: AddSettings, b: AddSettings): AddSettings = (a, b) match {
-    case (sa: Sequence, sb: Sequence) => seq(sa.sequence ++ sb.sequence: _*)
-    case (sa: Sequence, _)            => seq(sa.sequence :+ b: _*)
-    case (_, sb: Sequence)            => seq(a +: sb.sequence: _*)
+    case (sa: Sequence, sb: Sequence) => seq(sa.sequence ++ sb.sequence*)
+    case (sa: Sequence, _)            => seq(sa.sequence :+ b*)
+    case (_, sb: Sequence)            => seq(a +: sb.sequence*)
     case _                            => seq(a, b)
   }
 

@@ -311,17 +311,23 @@ object EvictionWarningSpec extends BaseIvySpecification {
   }
 
   def akkaActor214 =
-    ModuleID("com.typesafe.akka", "akka-actor", "2.1.4").withConfigurations(
-      Some("compile")
-    ) cross CrossVersion.binary
+    ModuleID("com.typesafe.akka", "akka-actor", "2.1.4")
+      .withConfigurations(
+        Some("compile")
+      )
+      .cross(CrossVersion.binary)
   def akkaActor230 =
-    ModuleID("com.typesafe.akka", "akka-actor", "2.3.0").withConfigurations(
-      Some("compile")
-    ) cross CrossVersion.binary
+    ModuleID("com.typesafe.akka", "akka-actor", "2.3.0")
+      .withConfigurations(
+        Some("compile")
+      )
+      .cross(CrossVersion.binary)
   def akkaActor234 =
-    ModuleID("com.typesafe.akka", "akka-actor", "2.3.4").withConfigurations(
-      Some("compile")
-    ) cross CrossVersion.binary
+    ModuleID("com.typesafe.akka", "akka-actor", "2.3.4")
+      .withConfigurations(
+        Some("compile")
+      )
+      .cross(CrossVersion.binary)
   def scala2102 =
     ModuleID("org.scala-lang", "scala-library", "2.10.2").withConfigurations(Some("compile"))
   def scala2103 =
@@ -336,17 +342,23 @@ object EvictionWarningSpec extends BaseIvySpecification {
       Some("compile")
     ) // uses commons-io 2.4
   def unfilteredUploads080 =
-    ModuleID("net.databinder", "unfiltered-uploads", "0.8.0").withConfigurations(
-      Some("compile")
-    ) cross CrossVersion.binary // uses commons-io 1.4
+    ModuleID("net.databinder", "unfiltered-uploads", "0.8.0")
+      .withConfigurations(
+        Some("compile")
+      )
+      .cross(CrossVersion.binary) // uses commons-io 1.4
   def bananaSesame04 =
-    ModuleID("org.w3", "banana-sesame", "0.4").withConfigurations(
-      Some("compile")
-    ) cross CrossVersion.binary // uses akka-actor 2.1.4
+    ModuleID("org.w3", "banana-sesame", "0.4")
+      .withConfigurations(
+        Some("compile")
+      )
+      .cross(CrossVersion.binary) // uses akka-actor 2.1.4
   def akkaRemote234 =
-    ModuleID("com.typesafe.akka", "akka-remote", "2.3.4").withConfigurations(
-      Some("compile")
-    ) cross CrossVersion.binary // uses akka-actor 2.3.4
+    ModuleID("com.typesafe.akka", "akka-remote", "2.3.4")
+      .withConfigurations(
+        Some("compile")
+      )
+      .cross(CrossVersion.binary) // uses akka-actor 2.3.4
 
   def fullOptions = EvictionWarningOptions.full
   def javaLibDirectDeps = Vector(commonsIo14, commonsIo24)

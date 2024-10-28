@@ -27,7 +27,7 @@ abstract class BackgroundJobService extends Closeable {
    *  then you should get an InterruptedException while blocking on the process, and
    *  then you could process.destroy() for example.
    */
-  def runInBackground(spawningTask: ScopedKey[_], state: State)(
+  def runInBackground(spawningTask: ScopedKey[?], state: State)(
       start: (Logger, File) => Unit
   ): JobHandle
 
@@ -40,7 +40,7 @@ abstract class BackgroundJobService extends Closeable {
    *  then you should get an InterruptedException while blocking on the process, and
    *  then you could process.destroy() for example.
    */
-  private[sbt] def runInBackgroundWithLoader(spawningTask: ScopedKey[_], state: State)(
+  private[sbt] def runInBackgroundWithLoader(spawningTask: ScopedKey[?], state: State)(
       start: (Logger, File) => (Option[ClassLoader], () => Unit)
   ): JobHandle = runInBackground(spawningTask, state) { (logger, file) =>
     start(logger, file)._2.apply()
@@ -95,7 +95,7 @@ object BackgroundJobService {
     import DefaultParsers._
     (state, handles) => {
       val stringIdParser: Parser[Seq[String]] = Space ~> token(
-        NotSpace examples handles.map(_.id.toString).toSet,
+        NotSpace.examples(handles.map(_.id.toString).toSet),
         description = "<job id>"
       ).+
       stringIdParser.map { strings =>
@@ -108,7 +108,7 @@ object BackgroundJobService {
 abstract class JobHandle {
   def id: Long
   def humanReadableName: String
-  def spawningTask: ScopedKey[_]
+  def spawningTask: ScopedKey[?]
 }
 
 /**

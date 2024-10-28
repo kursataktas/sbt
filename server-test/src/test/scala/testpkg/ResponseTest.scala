@@ -18,8 +18,8 @@ class ResponseTest extends AbstractServerTest {
     assert(svr.waitForString(10.seconds) { s =>
       if (!s.contains("systemOut"))
         println(s)
-      (s contains """"id":"10"""") &&
-      (s contains "scala-library-2.12.20.jar")
+      s.contains(""""id":"10"""") &&
+      s.contains("scala-library-2.12.20.jar")
     })
   }
 
@@ -29,8 +29,8 @@ class ResponseTest extends AbstractServerTest {
     )
     assert(svr.waitForString(10.seconds) { s =>
       if (!s.contains("systemOut")) println(s)
-      (s contains """"id":"11"""") &&
-      (s contains "scala-library-2.12.20.jar")
+      s.contains(""""id":"11"""") &&
+      s.contains("scala-library-2.12.20.jar")
     })
   }
 
@@ -40,7 +40,7 @@ class ResponseTest extends AbstractServerTest {
     )
     assert(svr.waitForString(10.seconds) { s =>
       if (!s.contains("systemOut")) println(s)
-      (s contains """"error":{"code":-33000,"message":"fail message"""")
+      s.contains(""""error":{"code":-33000,"message":"fail message"""")
     })
   }
 
@@ -50,7 +50,7 @@ class ResponseTest extends AbstractServerTest {
     )
     assert(svr.waitForString(10.seconds) { s =>
       if (!s.contains("systemOut")) println(s)
-      (s contains """"error":{"code":500,"message":"some error"""")
+      s.contains(""""error":{"code":500,"message":"some error"""")
     })
   }
 
@@ -60,7 +60,7 @@ class ResponseTest extends AbstractServerTest {
     )
     assert(svr.waitForString(10.seconds) { s =>
       if (!s.contains("systemOut")) println(s)
-      (s contains """{"jsonrpc":"2.0","method":"foo/something","params":"something"}""")
+      s.contains("""{"jsonrpc":"2.0","method":"foo/something","params":"something"}""")
     })
   }
 
@@ -71,14 +71,14 @@ class ResponseTest extends AbstractServerTest {
     assert {
       svr.waitForString(10.seconds) { s =>
         if (!s.contains("systemOut")) println(s)
-        s contains "\"id\":\"15\""
+        s.contains("\"id\":\"15\"")
       }
     }
     assert {
       // the second response should never be sent
       svr.neverReceive(500.milliseconds) { s =>
         if (!s.contains("systemOut")) println(s)
-        s contains "\"id\":\"15\""
+        s.contains("\"id\":\"15\"")
       }
     }
   }
@@ -90,14 +90,14 @@ class ResponseTest extends AbstractServerTest {
     assert {
       svr.waitForString(10.seconds) { s =>
         if (!s.contains("systemOut")) println(s)
-        s contains "\"id\":\"16\""
+        s.contains("\"id\":\"16\"")
       }
     }
     assert {
       // the second response (result or error) should never be sent
       svr.neverReceive(500.milliseconds) { s =>
         if (!s.contains("systemOut")) println(s)
-        s contains "\"id\":\"16\""
+        s.contains("\"id\":\"16\"")
       }
     }
   }
@@ -109,7 +109,7 @@ class ResponseTest extends AbstractServerTest {
     assert {
       svr.neverReceive(500.milliseconds) { s =>
         if (!s.contains("systemOut")) println(s)
-        s contains "\"result\":\"notification result\""
+        s.contains("\"result\":\"notification result\"")
       }
     }
   }

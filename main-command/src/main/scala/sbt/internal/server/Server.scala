@@ -193,7 +193,7 @@ private[sbt] object Server {
         def acl(owner: UserPrincipal) = {
           val builder = AclEntry.newBuilder
           builder.setPrincipal(owner)
-          builder.setPermissions(AclEntryPermission.values(): _*)
+          builder.setPermissions(AclEntryPermission.values()*)
           builder.setType(AclEntryType.ALLOW)
           builder.build
         }

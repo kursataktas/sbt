@@ -35,7 +35,7 @@ sealed trait Reference:
 
   final def /[K](key: Scoped.ScopingSetting[K]): K = key.rescope(asScope)
 
-  final def /(key: AttributeKey[_]): Scope = asScope.rescope(key)
+  final def /(key: AttributeKey[?]): Scope = asScope.rescope(key)
 end Reference
 
 /** A fully resolved, unique identifier for a project or build. */
@@ -85,11 +85,11 @@ object Reference {
     case (_: BuildRef, _: ProjectRef)     => -1
     case (_: ProjectRef, _: BuildRef)     => 1
   }
-  implicit val buildRefOrdering: Ordering[BuildRef] = (a, b) => a.build compareTo b.build
+  implicit val buildRefOrdering: Ordering[BuildRef] = (a, b) => a.build.compareTo(b.build)
 
   implicit val projectRefOrdering: Ordering[ProjectRef] = (a, b) => {
-    val bc = a.build compareTo b.build
-    if (bc == 0) a.project compareTo b.project else bc
+    val bc = a.build.compareTo(b.build)
+    if bc == 0 then a.project.compareTo(b.project) else bc
   }
 
   def display(ref: Reference): String =

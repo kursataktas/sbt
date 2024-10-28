@@ -62,7 +62,7 @@ object DependencyTreeSettings {
    * MiniDependencyTreePlugin includes these settings for Compile and Test scopes
    * to provide dependencyTree task.
    */
-  lazy val baseBasicReportingSettings: Seq[Def.Setting[_]] =
+  lazy val baseBasicReportingSettings: Seq[Def.Setting[?]] =
     Seq(
       dependencyTreeCrossProjectId := CrossVersion(scalaVersion.value, scalaBinaryVersion.value)(
         projectID.value
@@ -78,7 +78,10 @@ object DependencyTreeSettings {
         if (dependencyTreeIncludeScalaLibrary.value) g
         else GraphTransformations.ignoreScalaLibrary(sv, g)
       },
-      dependencyTreeModuleGraphStore := (dependencyTreeModuleGraph0 storeAs dependencyTreeModuleGraphStore triggeredBy dependencyTreeModuleGraph0).value,
+      dependencyTreeModuleGraphStore := dependencyTreeModuleGraph0
+        .storeAs(dependencyTreeModuleGraphStore)
+        .triggeredBy(dependencyTreeModuleGraph0)
+        .value,
     ) ++ {
       renderingTaskSettings(dependencyTree) :+ {
         dependencyTree / asString := {
@@ -90,7 +93,7 @@ object DependencyTreeSettings {
   /**
    * This is the maximum strength settings for DependencyTreePlugin.
    */
-  lazy val baseFullReportingSettings: Seq[Def.Setting[_]] =
+  lazy val baseFullReportingSettings: Seq[Def.Setting[?]] =
     Seq(
       // browse
       dependencyBrowseGraphTarget := { target.value / "browse-dependency-graph" },
@@ -155,16 +158,16 @@ object DependencyTreeSettings {
   def renderingAlternatives: Seq[(TaskKey[Unit], ModuleGraph => String)] =
     Seq(
       dependencyList -> rendering.FlatList.render(_.id.idString),
-      dependencyStats -> rendering.Statistics.renderModuleStatsList _,
-      dependencyLicenseInfo -> rendering.LicenseInfo.render _
+      dependencyStats -> rendering.Statistics.renderModuleStatsList,
+      dependencyLicenseInfo -> rendering.LicenseInfo.render
     )
 
-  def renderingTaskSettings(key: TaskKey[Unit], renderer: ModuleGraph => String): Seq[Setting[_]] =
+  def renderingTaskSettings(key: TaskKey[Unit], renderer: ModuleGraph => String): Seq[Setting[?]] =
     renderingTaskSettings(key) :+ {
       key / asString := renderer(dependencyTreeModuleGraph0.value)
     }
 
-  def renderingTaskSettings(key: TaskKey[Unit]): Seq[Setting[_]] =
+  def renderingTaskSettings(key: TaskKey[Unit]): Seq[Setting[?]] =
     Seq(
       key := {
         val s = streams.value

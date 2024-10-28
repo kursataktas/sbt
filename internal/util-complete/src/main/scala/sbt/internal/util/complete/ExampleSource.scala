@@ -49,7 +49,7 @@ sealed case class FixedSetExamples(examples: Iterable[String]) extends ExampleSo
   override def apply(): Iterable[String] = examples
 
   private def examplesWithRemovedPrefix(prefix: String) = examples.collect {
-    case example if example startsWith prefix => example substring prefix.length
+    case example if example.startsWith(prefix) => example.substring(prefix.length)
   }
 }
 
@@ -79,5 +79,5 @@ class FileExamples(base: File, prefix: String = "") extends ExampleSource {
   }
 
   private def dirStartsWithPrefix(relativizedPath: String): Boolean =
-    (relativizedPath startsWith prefix) || (prefix startsWith relativizedPath)
+    relativizedPath.startsWith(prefix) || prefix.startsWith(relativizedPath)
 }

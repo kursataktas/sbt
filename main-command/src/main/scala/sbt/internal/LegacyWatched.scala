@@ -24,7 +24,7 @@ private[sbt] object LegacyWatched {
     @tailrec def shouldTerminate: Boolean =
       (System.in.available > 0) && (watched.terminateWatch(System.in.read()) || shouldTerminate)
     val log = s.log
-    s get ContinuousEventMonitor match {
+    s.get(ContinuousEventMonitor) match {
       case None =>
         val watchState = WatchState.empty(watched.watchService(), watched.watchSources(s))
         // This is the first iteration, so run the task and create a new EventMonitor
@@ -45,7 +45,7 @@ private[sbt] object LegacyWatched {
         (ClearOnFailure :: next :: FailureWall :: repeat :: s)
           .put(ContinuousEventMonitor, monitor: EventMonitor)
       case Some(eventMonitor) =>
-        Watched.printIfDefined(watched watchingMessage eventMonitor.state())
+        Watched.printIfDefined(watched.watchingMessage(eventMonitor.state()))
         @tailrec def impl(): State = {
           val triggered =
             try eventMonitor.awaitEvent()
@@ -58,7 +58,7 @@ private[sbt] object LegacyWatched {
                 false
             }
           if (triggered) {
-            Watched.printIfDefined(watched triggeredMessage eventMonitor.state())
+            Watched.printIfDefined(watched.triggeredMessage(eventMonitor.state()))
             ClearOnFailure :: next :: FailureWall :: repeat :: s
           } else if (shouldTerminate) {
             while (System.in.available() > 0) System.in.read()

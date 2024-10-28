@@ -121,7 +121,7 @@ object CustomPomParser {
   }
 
   private def hash(ss: Seq[String]): String =
-    Hash.toHex(Hash(ss.flatMap(_ getBytes "UTF-8").toArray))
+    Hash.toHex(Hash(ss.flatMap(_.getBytes("UTF-8")).toArray))
 
   // Unfortunately, ModuleDescriptorParserRegistry is add-only and is a singleton instance.
   lazy val registerDefault: Unit = ModuleDescriptorParserRegistry.getInstance.addParser(default)
@@ -136,12 +136,11 @@ object CustomPomParser {
     val MyHash = MakeTransformHash(md)
     // sbt 0.13.1 used "sbtTransformHash" instead of "e:sbtTransformHash" until #1192 so read both
     Option(extraInfo).isDefined &&
-    ((Option(extraInfo get TransformedHashKey) orElse Option(
-      extraInfo get oldTransformedHashKey
-    )) match {
+    (Option(extraInfo.get(TransformedHashKey))
+      .orElse(Option(extraInfo.get(oldTransformedHashKey))) match
       case Some(MyHash) => true
       case _            => false
-    })
+    )
   }
 
   private def defaultTransformImpl(

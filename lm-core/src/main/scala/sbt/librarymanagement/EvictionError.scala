@@ -81,7 +81,7 @@ object EvictionError {
         case _ =>
           List((s.organization, s.name) -> versionScheme)
       }
-    }: _*)
+    }*)
 
     pairs foreach {
       // don't report on a transitive eviction that does not have a winner

@@ -77,7 +77,7 @@ private[sbt] object EvaluateConfigurations {
     }
     loader =>
       loadFiles.foldLeft(LoadedSbtFile.empty) { (loaded, load) =>
-        loaded merge load(loader)
+        loaded.merge(load(loader))
       }
   }
 
@@ -90,7 +90,7 @@ private[sbt] object EvaluateConfigurations {
       eval: Eval,
       src: VirtualFile,
       imports: Seq[String]
-  ): LazyClassLoaded[Seq[Setting[_]]] =
+  ): LazyClassLoaded[Seq[Setting[?]]] =
     evaluateConfiguration(eval, src, IO.readStream(src.input()).linesIterator.toList, imports, 0)
 
   /**
@@ -129,7 +129,7 @@ private[sbt] object EvaluateConfigurations {
       lines: Seq[String],
       imports: Seq[String],
       offset: Int
-  ): LazyClassLoaded[Seq[Setting[_]]] = {
+  ): LazyClassLoaded[Seq[Setting[?]]] = {
     val l = evaluateSbtFile(eval, file, lines, imports, offset)
     loader => l(loader).settings
   }
@@ -206,7 +206,7 @@ private[sbt] object EvaluateConfigurations {
     lines.map { case (s, i) => (s, i + offset) }
 
   def addOffsetToRange(offset: Int, ranges: Seq[(String, LineRange)]): Seq[(String, LineRange)] =
-    ranges.map { case (s, r) => (s, r shift offset) }
+    ranges.map { case (s, r) => (s, r.shift(offset)) }
 
   /**
    * The name of the class we cast DSL "setting" (vs. definition) lines to.
@@ -254,7 +254,7 @@ private[sbt] object EvaluateConfigurations {
     TrackedEvalResult(
       result.generated,
       loader => {
-        val pos = RangePosition(name, range shift 1)
+        val pos = RangePosition(name, range.shift(1))
         result.getValue(loader).asInstanceOf[DslEntry].withPos(pos)
       }
     )
@@ -281,7 +281,7 @@ private[sbt] object EvaluateConfigurations {
       imports: Seq[(String, Int)],
       expression: String,
       range: LineRange
-  ): LazyClassLoaded[Seq[Setting[_]]] =
+  ): LazyClassLoaded[Seq[Setting[?]]] =
     evaluateDslEntry(eval, name, imports, expression, range).result andThen {
       case DslEntry.ProjectSettings(values) => values
       case _                                => Nil
@@ -307,15 +307,15 @@ private[sbt] object EvaluateConfigurations {
 
   private def isDefinition(line: String): Boolean = {
     val trimmed = line.trim
-    DefinitionKeywords.exists(trimmed startsWith _)
+    DefinitionKeywords.exists(trimmed.startsWith(_))
   }
 
   private def extractedValTypes: Seq[String] =
     Seq(
       classOf[CompositeProject],
-      classOf[InputKey[_]],
-      classOf[TaskKey[_]],
-      classOf[SettingKey[_]]
+      classOf[InputKey[?]],
+      classOf[TaskKey[?]],
+      classOf[SettingKey[?]]
     ).map(_.getName)
 
   private def evaluateDefinitions(
@@ -351,19 +351,19 @@ object BuildUtilLite:
 end BuildUtilLite
 
 object Index {
-  def taskToKeyMap(data: Settings[Scope]): Map[Task[_], ScopedKey[Task[_]]] = {
+  def taskToKeyMap(data: Settings[Scope]): Map[Task[?], ScopedKey[Task[?]]] = {
 
     val pairs = data.scopes flatMap (scope =>
       data.data(scope).entries collect { case AttributeEntry(key, value: Task[_]) =>
-        (value, ScopedKey(scope, key.asInstanceOf[AttributeKey[Task[_]]]))
+        (value, ScopedKey(scope, key.asInstanceOf[AttributeKey[Task[?]]]))
       }
     )
 
-    pairs.toMap[Task[_], ScopedKey[Task[_]]]
+    pairs.toMap[Task[?], ScopedKey[Task[?]]]
   }
 
-  def allKeys(settings: Seq[Setting[_]]): Set[ScopedKey[_]] = {
-    val result = new java.util.HashSet[ScopedKey[_]]
+  def allKeys(settings: Seq[Setting[?]]): Set[ScopedKey[?]] = {
+    val result = new java.util.HashSet[ScopedKey[?]]
     settings.foreach { s =>
       if (!s.key.key.isLocal && result.add(s.key)) {
         s.dependencies.foreach(k => if (!k.key.isLocal) result.add(s.key))
@@ -372,15 +372,15 @@ object Index {
     result.asScala.toSet
   }
 
-  def attributeKeys(settings: Settings[Scope]): Set[AttributeKey[_]] =
-    settings.data.values.flatMap(_.keys).toSet[AttributeKey[_]]
+  def attributeKeys(settings: Settings[Scope]): Set[AttributeKey[?]] =
+    settings.data.values.flatMap(_.keys).toSet[AttributeKey[?]]
 
-  def stringToKeyMap(settings: Set[AttributeKey[_]]): Map[String, AttributeKey[_]] =
+  def stringToKeyMap(settings: Set[AttributeKey[?]]): Map[String, AttributeKey[?]] =
     stringToKeyMap0(settings)(_.label)
 
   private def stringToKeyMap0(
-      settings: Set[AttributeKey[_]]
-  )(label: AttributeKey[_] => String): Map[String, AttributeKey[_]] = {
+      settings: Set[AttributeKey[?]]
+  )(label: AttributeKey[?] => String): Map[String, AttributeKey[?]] = {
     val multiMap = settings.groupBy(label)
     val duplicates = multiMap.iterator
       .collect { case (k, xs) if xs.size > 1 => (k, xs.map(_.tag)) }

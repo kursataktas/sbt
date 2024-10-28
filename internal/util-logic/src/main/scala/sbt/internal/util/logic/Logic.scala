@@ -248,9 +248,9 @@ object Logic {
       case None => state // all of the remaining clauses failed on the new facts
       case Some(applied) =>
         val (proven, unprovenClauses) = findProven(applied)
-        val processedFacts = state add keepPositive(factsToProcess)
+        val processedFacts = state.add(keepPositive(factsToProcess))
         val newlyProven = proven -- processedFacts.provenSet
-        val newState = processedFacts add newlyProven
+        val newState = processedFacts.add(newlyProven)
         if (unprovenClauses.isEmpty) newState // no remaining clauses, done.
         else {
           val unproven = Clauses(unprovenClauses)

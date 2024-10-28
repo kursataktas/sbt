@@ -179,13 +179,13 @@ trait StateOps extends Any {
   def put[T](key: AttributeKey[T], value: T): State
 
   /** Removes the `key` and any associated value from the custom attributes map. */
-  def remove(key: AttributeKey[_]): State
+  def remove(key: AttributeKey[?]): State
 
   /** Sets the value associated with `key` in the custom attributes map by transforming the current value. */
   def update[T](key: AttributeKey[T])(f: Option[T] => T): State
 
   /** Returns true if `key` exists in the custom attributes map, false if it does not exist. */
-  def has(key: AttributeKey[_]): Boolean
+  def has(key: AttributeKey[?]): Boolean
 
   /** The application base directory, which is not necessarily the current working directory. */
   def baseDir: File
@@ -359,11 +359,11 @@ object State {
     def clearGlobalLog = setNext(ClearGlobalLog)
     def keepLastLog = setNext(KeepLastLog)
     def exit(ok: Boolean) = runExitHooks().setNext(new Return(Exit(if (ok) 0 else 1)))
-    def get[T](key: AttributeKey[T]) = s.attributes get key
+    def get[T](key: AttributeKey[T]) = s.attributes.get(key)
     def put[T](key: AttributeKey[T], value: T) = s.copy(attributes = s.attributes.put(key, value))
     def update[T](key: AttributeKey[T])(f: Option[T] => T): State = put(key, f(get(key)))
-    def has(key: AttributeKey[_]) = s.attributes contains key
-    def remove(key: AttributeKey[_]) = s.copy(attributes = s.attributes remove key)
+    infix def has(key: AttributeKey[?]) = s.attributes.contains(key)
+    def remove(key: AttributeKey[?]) = s.copy(attributes = s.attributes.remove(key))
     def log = s.globalLogging.full
     def handleError(t: Throwable): State = handleException(t, s, log)
     def fail = {
@@ -397,13 +397,19 @@ object State {
     def setInteractive(i: Boolean) = s.put(BasicKeys.interactive, i)
 
     def classLoaderCache: IncClassLoaderCache =
-      s get BasicKeys.classLoaderCache getOrElse (throw new IllegalStateException(
-        "Tried to get classloader cache for uninitialized state."
-      ))
+      s.get(BasicKeys.classLoaderCache)
+        .getOrElse(
+          throw new IllegalStateException(
+            "Tried to get classloader cache for uninitialized state."
+          )
+        )
     private[sbt] def extendedClassLoaderCache: ClassLoaderCache =
-      s get BasicKeys.extendedClassLoaderCache getOrElse (throw new IllegalStateException(
-        "Tried to get extended classloader cache for uninitialized state."
-      ))
+      s.get(BasicKeys.extendedClassLoaderCache)
+        .getOrElse(
+          throw new IllegalStateException(
+            "Tried to get extended classloader cache for uninitialized state."
+          )
+        )
     def initializeClassLoaderCache: State = {
       s.get(BasicKeys.extendedClassLoaderCache).foreach(_.close())
       val cache = newClassLoaderCache
@@ -454,7 +460,7 @@ object State {
   private[sbt] def logFullException(e: Throwable, log: Logger): Unit = {
     e.printStackTrace(System.err)
     log.trace(e)
-    log.error(ErrorHandling reducedToString e)
+    log.error(ErrorHandling.reducedToString(e))
     log.error("Use 'last' for the full log.")
   }
   private[sbt] def getBoolean(s: State, key: AttributeKey[Boolean], default: Boolean): Boolean =

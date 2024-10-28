@@ -43,7 +43,7 @@ object Previous {
   import sjsonnew.BasicJsonProtocol.StringJsonFormat
   private[sbt] type ScopedTaskKey[T] = ScopedKey[Task[T]]
   private type AnyTaskKey = ScopedTaskKey[Any]
-  private type Streams = sbt.std.Streams[ScopedKey[_]]
+  private type Streams = sbt.std.Streams[ScopedKey[?]]
 
   /** The stream where the task value is persisted. */
   private final val StreamName = "previous"
@@ -61,7 +61,7 @@ object Previous {
 
     def setTask(newTask: ScopedKey[Task[T]]) = new Referenced(newTask, format)
     private[sbt] def read(streams: Streams): Option[T] =
-      try Option(streams(key.cacheKey).cacheStoreFactory.make(StreamName).read[T]()(stamped))
+      try Option(streams(key.cacheKey).cacheStoreFactory.make(StreamName).read[T]()(using stamped))
       catch { case NonFatal(_) => None }
   }
 
@@ -142,7 +142,7 @@ object Previous {
       ref <- map.get(key.asInstanceOf[Key[Any]])
     } {
       val out = streams(key.cacheKey).cacheStoreFactory.make(StreamName)
-      try out.write(v)(ref.stamped)
+      try out.write(v)(using ref.stamped)
       catch { case NonFatal(_) => }
     }
   }
@@ -154,8 +154,9 @@ object Previous {
 
   /** Public as a macro implementation detail.  Do not call directly. */
   def runtime[T](skey: TaskKey[T])(implicit format: JsonFormat[T]): Initialize[Task[Option[T]]] = {
-    val inputs =
-      (Global / cache) zip Def.validated(skey, selfRefOk = true) zip (Global / references)
+    val inputs = (Global / cache)
+      .zip(Def.validated(skey, selfRefOk = true))
+      .zip(Global / references)
     inputs { case ((prevTask, resolved), refs) =>
       val key = Key(resolved, resolved)
       refs.recordReference(key, format) // always evaluated on project load

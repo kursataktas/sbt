@@ -68,7 +68,7 @@ class BufferedAppender(override val name: String, delegate: Appender) extends Ap
   }
 
   private val buffer =
-    new java.util.Vector[Either[XLogEvent, (Level.Value, Option[String], Option[ObjectEvent[_]])]]
+    new java.util.Vector[Either[XLogEvent, (Level.Value, Option[String], Option[ObjectEvent[?]])]]
   private var recording = false
 
   override def appendLog(level: Level.Value, message: => String): Unit = {

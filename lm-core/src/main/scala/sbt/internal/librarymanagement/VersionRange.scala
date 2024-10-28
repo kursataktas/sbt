@@ -6,11 +6,11 @@ object VersionRange {
 
   /** True if the revision is an ivy-range, not a complete revision. */
   def isVersionRange(revision: String): Boolean = {
-    (revision endsWith "+") ||
-    (revision contains "[") ||
-    (revision contains "]") ||
-    (revision contains "(") ||
-    (revision contains ")")
+    (revision.endsWith("+")) ||
+    (revision.contains("[")) ||
+    (revision.contains("]")) ||
+    (revision.contains("(")) ||
+    (revision.contains(")"))
   }
 
   // Assuming Ivy is used to resolve conflict, this removes the version range
@@ -58,7 +58,7 @@ object VersionRange {
         case NumPlusPattern(tail) => (0 until maxDigit).map(plusRange(tail, _)).mkString(",")
         case DotNumPlusPattern(base, tail) =>
           (0 until maxDigit).map(plusRange(base + "." + tail, _)).mkString(",")
-        case rev if rev endsWith "+" =>
+        case rev if rev.endsWith("+") =>
           sys.error(s"dynamic revision '$rev' cannot be translated to POM")
         case rev if startSym(rev(0)) && stopSym(rev(rev.length - 1)) =>
           val start = rev(0)

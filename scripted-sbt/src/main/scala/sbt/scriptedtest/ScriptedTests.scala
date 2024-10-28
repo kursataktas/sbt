@@ -581,7 +581,7 @@ class ScriptedRunner {
           launcherJar.getName.dropWhile(!_.isDigit).dropRight(".jar".length)
         case RunFromSourceBased(_, sbtVersion, _) => sbtVersion
       }
-    val accept = isTestCompatible(baseDir, sbtVersion) _
+    val accept = isTestCompatible(baseDir, sbtVersion)
     // The scripted tests mapped to the inputs that the user wrote after `scripted`.
     val scriptedTests =
       get(tests, baseDir, accept, logger).map(st => (st.group, st.name))
@@ -714,7 +714,7 @@ private[sbt] final class ListTests(
         log.warn(s"Tests skipped in group $groupName:")
         skipped.foreach(testName => log.warn(s" ${testName.getName}"))
       }
-      Set(included.map(_.getName): _*)
+      Set(included.map(_.getName)*)
     }
   }
 }

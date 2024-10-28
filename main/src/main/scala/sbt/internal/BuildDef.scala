@@ -24,7 +24,7 @@ trait BuildDef {
   def projects: Seq[Project] =
     CompositeProject.expand(ReflectUtilities.allValsC(this, classOf[CompositeProject]).values.toSeq)
   // TODO: Should we grab the build core settings here or in a plugin?
-  def settings: Seq[Setting[_]] = Defaults.buildCore
+  def settings: Seq[Setting[?]] = Defaults.buildCore
   def buildLoaders: Seq[BuildLoader.Components] = Nil
 
   /**
@@ -53,7 +53,7 @@ private[sbt] object BuildDef:
     Project(id, base).settings(defaultProjectSettings)
 
   def defaultAggregatedProject(id: String, base: File, agg: Seq[ProjectRef]): Project =
-    defaultProject(id, base).aggregate(agg: _*)
+    defaultProject(id, base).aggregate(agg*)
 
   private[sbt] def generatedRootSkipPublish(
       id: String,
@@ -67,7 +67,7 @@ private[sbt] object BuildDef:
         publishLocal / skip := true,
       )
 
-  private[sbt] def defaultProjectSettings: Seq[Setting[_]] = Seq(
+  private[sbt] def defaultProjectSettings: Seq[Setting[?]] = Seq(
     // TODO - Can we move this somewhere else?  ordering of settings is causing this to get borked.
     // if the user has overridden the name, use the normal organization that is derived from the name.
     organization := {
@@ -81,7 +81,7 @@ private[sbt] object BuildDef:
   )
 
   def analyzed(
-      in: Seq[Attributed[_]],
+      in: Seq[Attributed[?]],
       converter: FileConverter
   ): Seq[xsbti.compile.CompileAnalysis] =
     in.flatMap(a => extractAnalysis(a.metadata, converter))

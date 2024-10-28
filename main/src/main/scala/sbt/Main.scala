@@ -464,7 +464,7 @@ object BuiltinCommands {
       command: String,
       preamble: String,
       cutoff: Int,
-      keep: AttributeKey[_] => Boolean
+      keep: AttributeKey[?] => Boolean
   ): Command =
     Command(command, settingsBrief(command), settingsDetailed(command))(showSettingParser(keep)) {
       case (s: State, (verbosity: Int, selected: Option[String])) =>
@@ -477,10 +477,10 @@ object BuiltinCommands {
         s
     }
   def showSettingParser(
-      keepKeys: AttributeKey[_] => Boolean
+      keepKeys: AttributeKey[?] => Boolean
   )(s: State): Parser[(Int, Option[String])] =
     verbosityParser ~ selectedParser(s, keepKeys).?
-  def selectedParser(s: State, keepKeys: AttributeKey[_] => Boolean): Parser[String] =
+  def selectedParser(s: State, keepKeys: AttributeKey[?] => Boolean): Parser[String] =
     singleArgument(allTaskAndSettingKeys(s).withFilter(keepKeys).map(_.label).toSet)
   def verbosityParser: Parser[Int] =
     success(1) | ((Space ~ "-") ~> (
@@ -488,15 +488,15 @@ object BuiltinCommands {
         ("V" ^^^ Int.MaxValue)
     ))
 
-  def taskDetail(keys: Seq[AttributeKey[_]], firstOnly: Boolean): Seq[(String, String)] =
+  def taskDetail(keys: Seq[AttributeKey[?]], firstOnly: Boolean): Seq[(String, String)] =
     sortByLabel(withDescription(keys)) flatMap { t =>
       taskStrings(t, firstOnly)
     }
 
-  def taskDetail(keys: Seq[AttributeKey[_]]): Seq[(String, String)] =
+  def taskDetail(keys: Seq[AttributeKey[?]]): Seq[(String, String)] =
     taskDetail(keys, false)
 
-  def allTaskAndSettingKeys(s: State): Seq[AttributeKey[_]] = {
+  def allTaskAndSettingKeys(s: State): Seq[AttributeKey[?]] = {
     val extracted = Project.extract(s)
     import extracted._
     val index = structure.index
@@ -507,7 +507,7 @@ object BuiltinCommands {
         try Some(index.keyMap(key))
         catch {
           case NonFatal(ex) =>
-            s.log debug ex.getMessage
+            s.log.debug(ex.getMessage)
             None
         }
       }
@@ -515,19 +515,19 @@ object BuiltinCommands {
       .distinct
   }
 
-  def sortByLabel(keys: Seq[AttributeKey[_]]): Seq[AttributeKey[_]] = keys.sortBy(_.label)
-  def sortByRank(keys: Seq[AttributeKey[_]]): Seq[AttributeKey[_]] = keys.sortBy(_.rank)
-  def withDescription(keys: Seq[AttributeKey[_]]): Seq[AttributeKey[_]] =
+  def sortByLabel(keys: Seq[AttributeKey[?]]): Seq[AttributeKey[?]] = keys.sortBy(_.label)
+  def sortByRank(keys: Seq[AttributeKey[?]]): Seq[AttributeKey[?]] = keys.sortBy(_.rank)
+  def withDescription(keys: Seq[AttributeKey[?]]): Seq[AttributeKey[?]] =
     keys.filter(_.description.isDefined)
 
-  def topNRanked(n: Int) = (keys: Seq[AttributeKey[_]]) => sortByRank(keys).take(n)
+  def topNRanked(n: Int) = (keys: Seq[AttributeKey[?]]) => sortByRank(keys).take(n)
 
   def highPass(rankCutoff: Int) =
-    (keys: Seq[AttributeKey[_]]) => sortByRank(keys).takeWhile(_.rank <= rankCutoff)
+    (keys: Seq[AttributeKey[?]]) => sortByRank(keys).takeWhile(_.rank <= rankCutoff)
 
   def tasksHelp(
       s: State,
-      filter: Seq[AttributeKey[_]] => Seq[AttributeKey[_]],
+      filter: Seq[AttributeKey[?]] => Seq[AttributeKey[?]],
       arg: Option[String]
   ): String = {
     val commandAndDescription = taskDetail(filter(allTaskAndSettingKeys(s)), true)
@@ -537,12 +537,12 @@ object BuiltinCommands {
     }
   }
 
-  def taskStrings(key: AttributeKey[_], firstOnly: Boolean): Option[(String, String)] =
+  def taskStrings(key: AttributeKey[?], firstOnly: Boolean): Option[(String, String)] =
     key.description map { d =>
       if (firstOnly) (key.label, d.split("\r?\n")(0)) else (key.label, d)
     }
 
-  def taskStrings(key: AttributeKey[_]): Option[(String, String)] = taskStrings(key, false)
+  def taskStrings(key: AttributeKey[?]): Option[(String, String)] = taskStrings(key, false)
 
   def defaults = Command.command(DefaultsCommand) { s =>
     s.copy(definedCommands = DefaultCommands)
@@ -592,7 +592,7 @@ object BuiltinCommands {
   }
 
   def set: Command = Command(SetCommand, setBrief, setDetailed)(setParser) { case (s, (all, arg)) =>
-    val extracted = Project extract s
+    val extracted = Project.extract(s)
     import extracted._
     val dslVals = extracted.currentUnit.unit.definitions.dslDefinitions
     // TODO - This is possibly inefficient (or stupid).  We should try to only attach the
@@ -619,14 +619,14 @@ object BuiltinCommands {
   def setThis(
       s: State,
       extracted: Extracted,
-      settings: Seq[Def.Setting[_]],
+      settings: Seq[Def.Setting[?]],
       arg: String
   ): SetResult =
     setThis(extracted, settings, arg)
 
   def setThis(
       extracted: Extracted,
-      settings: Seq[Def.Setting[_]],
+      settings: Seq[Def.Setting[?]],
       arg: String
   ): SetResult =
     SettingCompletions.setThis(extracted, settings, arg)
@@ -660,7 +660,7 @@ object BuiltinCommands {
       }
     }
 
-  def extractLast(s: State): (BuildStructure, Select[ProjectRef], Show[Def.ScopedKey[_]]) = {
+  def extractLast(s: State): (BuildStructure, Select[ProjectRef], Show[Def.ScopedKey[?]]) = {
     val ext = Project.extract(s)
     (ext.structure, Select(ext.currentRef), ext.showKey)
   }
@@ -686,7 +686,7 @@ object BuiltinCommands {
     Act.requireSession(s, token(Space) ~> exportParser0(s))
 
   private[sbt] def exportParser0(s: State): Parser[() => State] = {
-    val extracted = Project extract s
+    val extracted = Project.extract(s)
     import extracted.{ showKey, structure }
     val keysParser = token(flag("--last" <~ Space)) ~ Act.aggregatedKeyParser(extracted)
     val show = Aggregation.ShowConfig(
@@ -823,7 +823,7 @@ object BuiltinCommands {
     }
 
   def showProjects(s: State): Unit = {
-    val extracted = Project extract s
+    val extracted = Project.extract(s)
     import extracted._
     listBuild(currentRef.build, structure.units(currentRef.build), true, currentRef.project, s.log)
     for ((uri, build) <- structure.units if currentRef.build != uri)
@@ -1012,7 +1012,7 @@ object BuiltinCommands {
   def clearCaches: Command = {
     val help = Help.more(ClearCaches, ClearCachesDetailed)
     val f: State => State =
-      registerCompilerCache _ andThen (_.initializeClassLoaderCache) andThen addCacheStoreFactoryFactory
+      registerCompilerCache andThen (_.initializeClassLoaderCache) andThen addCacheStoreFactoryFactory
     Command.command(ClearCaches, help)(f)
   }
 
@@ -1068,7 +1068,7 @@ object BuiltinCommands {
     import sbt.internal.ConsolePromptEvent
     val exchange = StandardMain.exchange
     val welcomeState = displayWelcomeBanner(s0)
-    val s1 = exchange run welcomeState
+    val s1 = exchange.run(welcomeState)
     /*
      * It is possible for sbt processes to leak if two are started simultaneously
      * by a remote client and only one is able to start a server. This seems to
@@ -1078,7 +1078,7 @@ object BuiltinCommands {
       Exec(Shutdown, None) +: s1
     } else {
       if (ITerminal.console.prompt == Prompt.Batch) ITerminal.console.setPrompt(Prompt.Pending)
-      exchange prompt ConsolePromptEvent(s0)
+      exchange.prompt(ConsolePromptEvent(s0))
       val minGCInterval = Project
         .extract(s1)
         .getOpt(Keys.minForcegcInterval)
@@ -1127,10 +1127,10 @@ object BuiltinCommands {
         if (isSbtBuild(baseDir)) {
           val line = s"sbt.version=$sbtVersion"
           IO.writeLines(buildProps, line :: buildPropsLines)
-          state.log info s"Updated file $buildProps: set sbt.version to $sbtVersion"
-        } else state.log warn warnMsg
+          state.log.info(s"Updated file $buildProps: set sbt.version to $sbtVersion")
+        } else state.log.warn(warnMsg)
       } catch {
-        case _: IOException => state.log warn warnMsg
+        case _: IOException => state.log.warn(warnMsg)
       }
     }
   }
@@ -1174,9 +1174,13 @@ object BuiltinCommands {
     state.remainingCommands exists (_.commandLine == StartServer)
 
   private def notifyUsersAboutShell(state: State): Unit = {
-    val suppress = Project extract state getOpt Keys.suppressSbtShellNotification getOrElse false
+    val suppress =
+      Project
+        .extract(state)
+        .getOpt(Keys.suppressSbtShellNotification)
+        .getOrElse(false)
     if (!suppress && intendsToInvokeCompile(state) && !hasRebooted(state))
-      state.log info "Executing in batch mode. For better performance use sbt's shell"
+      state.log.info("Executing in batch mode. For better performance use sbt's shell")
   }
 
   private def NotifyUsersAboutShell = "notifyUsersAboutShell"

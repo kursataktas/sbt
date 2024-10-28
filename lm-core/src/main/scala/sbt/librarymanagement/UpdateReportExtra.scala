@@ -158,7 +158,7 @@ private[librarymanagement] abstract class UpdateReportExtra {
   }
 
   def retrieve(f: (ConfigRef, ModuleID, Artifact, File) => File): UpdateReport =
-    UpdateReport(cachedDescriptor, configurations map { _ retrieve f }, stats, stamps)
+    UpdateReport(cachedDescriptor, configurations.map { _.retrieve(f) }, stats, stamps)
 
   /** Gets the report for the given configuration, or `None` if the configuration was not resolved. */
   def configuration(s: ConfigRef) = configurations.find(_.configuration == s)

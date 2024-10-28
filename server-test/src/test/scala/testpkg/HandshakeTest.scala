@@ -18,7 +18,7 @@ class HandshakeTest extends AbstractServerTest {
       """{ "jsonrpc": "2.0", "id": "3", "method": "sbt/setting", "params": { "setting": "root/name" } }"""
     )
     assert(svr.waitForString(10.seconds) { s =>
-      s contains """"id":"3""""
+      s.contains(""""id":"3"""")
     })
   }
 
@@ -27,7 +27,7 @@ class HandshakeTest extends AbstractServerTest {
       """{ "jsonrpc": "2.0", "id": 3, "method": "sbt/setting", "params": { "setting": "root/name" } }"""
     )
     assert(svr.waitForString(10.seconds) { s =>
-      s contains """"id":3"""
+      s.contains(""""id":3""")
     })
   }
 }

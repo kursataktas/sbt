@@ -95,17 +95,17 @@ abstract class AutoPlugin extends Plugins.Basic with PluginsFunctions {
   def projectConfigurations: Seq[Configuration] = Nil
 
   /** The `Setting`s to add in the scope of each project that activates this AutoPlugin. */
-  def projectSettings: Seq[Setting[_]] = Nil
+  def projectSettings: Seq[Setting[?]] = Nil
 
   /**
    * The `Setting` to add to the build scope for each project that activates this AutoPlugin.
    * The settings returned here are guaranteed to be added to a given build scope only once
    * regardless of how many projects for that build activate this AutoPlugin.
    */
-  def buildSettings: Seq[Setting[_]] = Nil
+  def buildSettings: Seq[Setting[?]] = Nil
 
   /** The `Setting`s to add to the global scope exactly once if any project activates this AutoPlugin. */
-  def globalSettings: Seq[Setting[_]] = Nil
+  def globalSettings: Seq[Setting[?]] = Nil
 
   // TODO?: def commands: Seq[Command]
 
@@ -113,7 +113,7 @@ abstract class AutoPlugin extends Plugins.Basic with PluginsFunctions {
   def extraProjects: Seq[Project] = Nil
 
   /** The [[Project]]s to add to the current build based on an existing project. */
-  def derivedProjects(@deprecated("unused", "") proj: ProjectDefinition[_]): Seq[Project] = Nil
+  def derivedProjects(@deprecated("unused", "") proj: ProjectDefinition[?]): Seq[Project] = Nil
 
   private[sbt] def unary_! : Exclude = Exclude(this)
 
@@ -164,7 +164,7 @@ sealed trait PluginsFunctions {
 
 object Plugins extends PluginsFunctions {
 
-  private[sbt] var defaultRequires: Plugins = _
+  private[sbt] var defaultRequires: Plugins = scala.compiletime.uninitialized
 
   /**
    * Given the available auto plugins `defined`, returns a function that selects [[AutoPlugin]]s for the provided [[AutoPlugin]]s.
@@ -280,7 +280,7 @@ object Plugins extends PluginsFunctions {
   private def duplicateProvidesError(byAtom: Seq[(Atom, AutoPlugin)]): Unit = {
     val dupsByAtom = Map(byAtom.groupBy(_._1).toSeq.map { case (k, v) =>
       k -> v.map(_._2)
-    }: _*)
+    }*)
     val dupStrings =
       for ((atom, dups) <- dupsByAtom if dups.size > 1)
         yield s"${atom.label} by ${dups.mkString(", ")}"
@@ -437,7 +437,7 @@ ${listConflicts(conflicting)}""")
     import java.lang.reflect.Field
     import scala.util.control.Exception.catching
     // Make sure that we don't detect user-defined methods called autoImport
-    def existsAutoImportVal(clazz: Class[_]): Option[Field] = {
+    def existsAutoImportVal(clazz: Class[?]): Option[Field] = {
       catching(classOf[NoSuchFieldException])
         .opt(clazz.getDeclaredField(autoImport))
         .orElse(Option(clazz.getSuperclass).flatMap(existsAutoImportVal))

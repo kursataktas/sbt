@@ -43,9 +43,9 @@ private[sbt] object ForkTests {
         constant(TestOutput(TestResult.Passed, Map.empty[String, SuiteResult], Iterable.empty))
       else
         mainTestTask(runners, opts, classpath, converter, fork, log, config.parallel).tagw(
-          config.tags: _*
+          config.tags*
         )
-    main.tagw(tags: _*).dependsOn(all(opts.setup): _*) flatMap { results =>
+    main.tagw(tags*).dependsOn(all(opts.setup)*) flatMap { results =>
       all(opts.cleanup).join.map(_ => results)
     }
   }
@@ -61,7 +61,7 @@ private[sbt] object ForkTests {
       tags: (Tag, Int)*
   ): Task[TestOutput] = {
     val opts = processOptions(config, tests, log)
-    apply(runners, opts, config, classpath, converter, fork, log, tags: _*)
+    apply(runners, opts, config, classpath, converter, fork, log, tags*)
   }
 
   def apply(
@@ -191,7 +191,7 @@ private[sbt] object ForkTests {
       }
     }
 
-  private def forkFingerprint(f: Fingerprint): Fingerprint with Serializable =
+  private def forkFingerprint(f: Fingerprint): Fingerprint & Serializable =
     f match {
       case s: SubclassFingerprint  => new ForkMain.SubclassFingerscan(s)
       case a: AnnotatedFingerprint => new ForkMain.AnnotatedFingerscan(a)
@@ -222,9 +222,9 @@ private final class React(
       log.trace(t); react()
     case Array(group: String, tEvents: Array[Event]) =>
       val events = tEvents.toSeq
-      listeners.foreach(_ startGroup group)
+      listeners.foreach(_.startGroup(group))
       val event = TestEvent(events)
-      listeners.foreach(_ testEvent event)
+      listeners.foreach(_.testEvent(event))
       val suiteResult = SuiteResult(events)
       results += group -> suiteResult
       listeners.foreach(_.endGroup(group, suiteResult.result))

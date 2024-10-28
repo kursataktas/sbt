@@ -12,7 +12,7 @@ import xsbti.{ Problem, Severity, Position }
 import _root_.sjsonnew.{ deserializationError, Builder, JsonFormat, Unbuilder }
 import java.util.Optional
 
-trait ProblemFormats { self: SeverityFormats with PositionFormats with sjsonnew.BasicJsonProtocol =>
+trait ProblemFormats { self: SeverityFormats & PositionFormats & sjsonnew.BasicJsonProtocol =>
   implicit lazy val ProblemFormat: JsonFormat[Problem] = new JsonFormat[Problem] {
     override def read[J](jsOpt: Option[J], unbuilder: Unbuilder[J]): Problem = {
       jsOpt match {

@@ -22,7 +22,7 @@ class ProjectDefs {
   // should not compile
   // def y = project
 
-  val z = project in new File("dir")
+  val z = (project in new File("dir"))
 
   val a: Project = project
 

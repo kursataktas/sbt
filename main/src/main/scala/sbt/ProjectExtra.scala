@@ -154,14 +154,14 @@ object ProjectExtra extends ProjectExtra:
 trait ProjectExtra extends Scoped.Syntax:
   import ProjectExtra.projectReturnKey
 
-  def inConfig(conf: Configuration)(ss: Seq[Setting[_]]): Seq[Setting[_]] =
+  def inConfig(conf: Configuration)(ss: Seq[Setting[?]]): Seq[Setting[?]] =
     Project.inScope(ThisScope.copy(config = Select(conf)))((Keys.configuration :== conf) +: ss)
 
   extension (self: Project)
     /** Adds configurations to this project.  Added configurations replace existing configurations with the same name. */
     def overrideConfigs(cs: Configuration*): Project =
       self.copy(
-        configurations = Defaults.overrideConfigs(cs: _*)(self.configurations),
+        configurations = Defaults.overrideConfigs(cs*)(self.configurations),
       )
 
     /**
@@ -170,7 +170,7 @@ trait ProjectExtra extends Scoped.Syntax:
      */
     private[sbt] def prefixConfigs(cs: Configuration*): Project =
       self.copy(
-        configurations = Defaults.overrideConfigs(self.configurations: _*)(cs),
+        configurations = Defaults.overrideConfigs(self.configurations*)(cs),
       )
 
   extension (m: Project.type)
@@ -195,10 +195,10 @@ trait ProjectExtra extends Scoped.Syntax:
     }
      */
 
-    def showContextKey(state: State): Show[ScopedKey[_]] =
+    def showContextKey(state: State): Show[ScopedKey[?]] =
       showContextKey(state, None)
 
-    def showContextKey(state: State, keyNameColor: Option[String]): Show[ScopedKey[_]] =
+    def showContextKey(state: State, keyNameColor: Option[String]): Show[ScopedKey[?]] =
       if (isProjectLoaded(state)) showContextKey2(session(state), keyNameColor)
       else Def.showFullKey
 
@@ -213,13 +213,13 @@ trait ProjectExtra extends Scoped.Syntax:
     def showContextKey2(
         session: SessionSettings,
         keyNameColor: Option[String] = None
-    ): Show[ScopedKey[_]] =
+    ): Show[ScopedKey[?]] =
       Def.showRelativeKey2(session.current, keyNameColor)
 
     def showLoadingKey(
         loaded: LoadedBuild,
         keyNameColor: Option[String] = None
-    ): Show[ScopedKey[_]] =
+    ): Show[ScopedKey[?]] =
       Def.showRelativeKey2(
         ProjectRef(loaded.root, loaded.units(loaded.root).rootProjects.head),
         keyNameColor
@@ -258,7 +258,7 @@ trait ProjectExtra extends Scoped.Syntax:
       (units get ref.build).flatMap(_.defined get ref.project)
 
     def runUnloadHooks(s: State): State =
-      val previousOnUnload = orIdentity(s get Keys.onUnload.key)
+      val previousOnUnload = orIdentity(s.get(Keys.onUnload.key))
       previousOnUnload(s.runExitHooks())
 
     def setProject(session: SessionSettings, structure: BuildStructure, s: State): State =
@@ -289,7 +289,7 @@ trait ProjectExtra extends Scoped.Syntax:
       opt.getOrElse(identity)
 
     def getHook[A](key: SettingKey[A => A], data: Settings[Scope]): A => A =
-      orIdentity((Global / key) get data)
+      orIdentity((Global / key).get(data))
 
     def getHooks(data: Settings[Scope]): (State => State, State => State) =
       (getHook(Keys.onLoad, data), getHook(Keys.onUnload, data))
@@ -300,9 +300,9 @@ trait ProjectExtra extends Scoped.Syntax:
       val structure = Project.structure(s)
       val ref = Project.current(s)
       Load.getProject(structure.units, ref.build, ref.project)
-      val msg = (ref / Keys.onLoadMessage) get structure.data getOrElse ""
+      val msg = (ref / Keys.onLoadMessage).get(structure.data).getOrElse("")
       if (!msg.isEmpty) s.log.info(msg)
-      def get[T](k: SettingKey[T]): Option[T] = (ref / k) get structure.data
+      def get[T](k: SettingKey[T]): Option[T] = (ref / k).get(structure.data)
       def commandsIn(axis: ResolvedReference) = (axis / commands).get(structure.data).toList
 
       val allCommands = commandsIn(ref) ++ commandsIn(
@@ -311,7 +311,7 @@ trait ProjectExtra extends Scoped.Syntax:
       val history = get(historyPath).flatMap(identity)
       val prompt = get(shellPrompt)
       val newPrompt = get(colorShellPrompt)
-      val trs = ((Global / templateResolverInfos) get structure.data).toList.flatten
+      val trs = ((Global / templateResolverInfos).get(structure.data)).toList.flatten
       val startSvr: Option[Boolean] = get(autoStartServer)
       val host: Option[String] = get(serverHost)
       val port: Option[Int] = get(serverPort)
@@ -324,7 +324,7 @@ trait ProjectExtra extends Scoped.Syntax:
       val caches: Option[Seq[ActionCacheStore]] = get(cacheStores)
       val rod: Option[NioPath] = get(rootOutputDirectory)
       val fileConverter: Option[FileConverter] = get(Keys.fileConverter)
-      val commandDefs = allCommands.distinct.flatten[Command].map(_ tag (projectCommand, true))
+      val commandDefs = allCommands.distinct.flatten[Command].map(_.tag(projectCommand, true))
       val newDefinedCommands = commandDefs ++ BasicCommands.removeTagged(
         s.definedCommands,
         projectCommand
@@ -361,27 +361,27 @@ trait ProjectExtra extends Scoped.Syntax:
     def setCond[T](key: AttributeKey[T], vopt: Option[T], attributes: AttributeMap): AttributeMap =
       attributes.setCond(key, vopt)
 
-    private[sbt] def equalKeys(a: ScopedKey[_], b: ScopedKey[_], mask: ScopeMask): Boolean =
+    private[sbt] def equalKeys(a: ScopedKey[?], b: ScopedKey[?], mask: ScopeMask): Boolean =
       a.key == b.key && Scope.equal(a.scope, b.scope, mask)
 
     def delegates(
         structure: BuildStructure,
         scope: Scope,
-        key: AttributeKey[_]
-    ): Seq[ScopedKey[_]] =
+        key: AttributeKey[?]
+    ): Seq[ScopedKey[?]] =
       structure.delegates(scope).map(d => ScopedKey(d, key))
 
     private[sbt] def scopedKeyData(
         structure: BuildStructure,
         scope: Scope,
-        key: AttributeKey[_]
-    ): Option[ScopedKeyData[_]] =
+        key: AttributeKey[?]
+    ): Option[ScopedKeyData[?]] =
       structure.data.get(scope, key) map { v =>
         ScopedKeyData(ScopedKey(scope, key), v)
       }
 
-    def details(structure: BuildStructure, actual: Boolean, scope: Scope, key: AttributeKey[_])(
-        using display: Show[ScopedKey[_]]
+    def details(structure: BuildStructure, actual: Boolean, scope: Scope, key: AttributeKey[?])(
+        using display: Show[ScopedKey[?]]
     ): String = {
       val scoped = ScopedKey(scope, key)
 
@@ -413,7 +413,7 @@ trait ProjectExtra extends Scoped.Syntax:
 
       val cMap = Def.flattenLocals(comp)
       val related = cMap.keys.filter(k => k.key == key && k.scope != scope)
-      def derivedDependencies(c: ScopedKey[_]): List[ScopedKey[_]] =
+      def derivedDependencies(c: ScopedKey[?]): List[ScopedKey[?]] =
         comp
           .get(c)
           .map(_.settings.flatMap(s => if (s.isDerived) s.dependencies else Nil))
@@ -423,7 +423,7 @@ trait ProjectExtra extends Scoped.Syntax:
       val depends = cMap.get(scoped) match {
         case Some(c) => c.dependencies.toSet; case None => Set.empty
       }
-      val derivedDepends: Set[ScopedKey[_]] = derivedDependencies(definingScoped).toSet
+      val derivedDepends: Set[ScopedKey[?]] = derivedDependencies(definingScoped).toSet
 
       val reverse = Project.reverseDependencies(cMap, scoped)
       val derivedReverse =
@@ -432,20 +432,20 @@ trait ProjectExtra extends Scoped.Syntax:
       def printDepScopes(
           baseLabel: String,
           derivedLabel: String,
-          scopes: Iterable[ScopedKey[_]],
-          derived: Set[ScopedKey[_]]
+          scopes: Iterable[ScopedKey[?]],
+          derived: Set[ScopedKey[?]]
       ): String = {
         val label = s"$baseLabel${if (derived.isEmpty) "" else s" (D=$derivedLabel)"}"
-        val prefix: ScopedKey[_] => String =
+        val prefix: ScopedKey[?] => String =
           if (derived.isEmpty) const("") else sk => if (derived(sk)) "D " else "  "
         printScopes(label, scopes, prefix = prefix)
       }
 
       def printScopes(
           label: String,
-          scopes: Iterable[ScopedKey[_]],
+          scopes: Iterable[ScopedKey[?]],
           max: Int = Int.MaxValue,
-          prefix: ScopedKey[_] => String = const("")
+          prefix: ScopedKey[?] => String = const("")
       ) =
         if (scopes.isEmpty) ""
         else {
@@ -464,8 +464,8 @@ trait ProjectExtra extends Scoped.Syntax:
         printScopes("Related", related, 10)
     }
 
-    def settingGraph(structure: BuildStructure, basedir: File, scoped: ScopedKey[_])(using
-        display: Show[ScopedKey[_]]
+    def settingGraph(structure: BuildStructure, basedir: File, scoped: ScopedKey[?])(using
+        display: Show[ScopedKey[?]]
     ): SettingGraph =
       SettingGraph(structure, basedir, scoped, 0)
 
@@ -488,54 +488,54 @@ trait ProjectExtra extends Scoped.Syntax:
      */
 
     def relation(structure: BuildStructure, actual: Boolean)(using
-        display: Show[ScopedKey[_]]
-    ): Relation[ScopedKey[_], ScopedKey[_]] =
+        display: Show[ScopedKey[?]]
+    ): Relation[ScopedKey[?], ScopedKey[?]] =
       relation(structure.settings, actual)(using
         structure.delegates,
         structure.scopeLocal,
         display,
       )
 
-    private[sbt] def relation(settings: Seq[Def.Setting[_]], actual: Boolean)(using
+    private[sbt] def relation(settings: Seq[Def.Setting[?]], actual: Boolean)(using
         delegates: Scope => Seq[Scope],
         scopeLocal: Def.ScopeLocal,
-        display: Show[ScopedKey[_]]
-    ): Relation[ScopedKey[_], ScopedKey[_]] =
+        display: Show[ScopedKey[?]]
+    ): Relation[ScopedKey[?], ScopedKey[?]] =
       val cMap = Def.flattenLocals(Def.compiled(settings, actual))
-      val emptyRelation = Relation.empty[ScopedKey[_], ScopedKey[_]]
+      val emptyRelation = Relation.empty[ScopedKey[?], ScopedKey[?]]
       cMap.foldLeft(emptyRelation) { case (r, (key, value)) =>
         r + (key, value.dependencies)
       }
 
-    private[sbt] def showDefinitions(key: AttributeKey[_], defs: Seq[Scope])(using
-        display: Show[ScopedKey[_]]
+    private[sbt] def showDefinitions(key: AttributeKey[?], defs: Seq[Scope])(using
+        display: Show[ScopedKey[?]]
     ): String =
       showKeys(defs.map(scope => ScopedKey(scope, key)))
 
-    private[sbt] def showUses(defs: Seq[ScopedKey[_]])(using display: Show[ScopedKey[_]]): String =
+    private[sbt] def showUses(defs: Seq[ScopedKey[?]])(using display: Show[ScopedKey[?]]): String =
       showKeys(defs)
 
-    private def showKeys(s: Seq[ScopedKey[_]])(using display: Show[ScopedKey[_]]): String =
+    private def showKeys(s: Seq[ScopedKey[?]])(using display: Show[ScopedKey[?]]): String =
       s.map(display.show).sorted.mkString("\n\t", "\n\t", "\n\n")
 
-    private[sbt] def definitions(structure: BuildStructure, actual: Boolean, key: AttributeKey[_])(
-        using display: Show[ScopedKey[_]]
+    private[sbt] def definitions(structure: BuildStructure, actual: Boolean, key: AttributeKey[?])(
+        using display: Show[ScopedKey[?]]
     ): Seq[Scope] =
       relation(structure, actual)(using display)._1s.toSeq flatMap { sk =>
         if (sk.key == key) sk.scope :: Nil else Nil
       }
 
-    private[sbt] def usedBy(structure: BuildStructure, actual: Boolean, key: AttributeKey[_])(using
-        display: Show[ScopedKey[_]]
-    ): Seq[ScopedKey[_]] =
+    private[sbt] def usedBy(structure: BuildStructure, actual: Boolean, key: AttributeKey[?])(using
+        display: Show[ScopedKey[?]]
+    ): Seq[ScopedKey[?]] =
       relation(structure, actual)(using display).all.toSeq flatMap { case (a, b) =>
-        if (b.key == key) List[ScopedKey[_]](a) else Nil
+        if (b.key == key) List[ScopedKey[?]](a) else Nil
       }
 
     def reverseDependencies(
-        cMap: Map[ScopedKey[_], Flattened],
-        scoped: ScopedKey[_]
-    ): Iterable[ScopedKey[_]] =
+        cMap: Map[ScopedKey[?], Flattened],
+        scoped: ScopedKey[?]
+    ): Iterable[ScopedKey[?]] =
       for {
         (key, compiled) <- cMap
         dep <- compiled.dependencies if dep == scoped

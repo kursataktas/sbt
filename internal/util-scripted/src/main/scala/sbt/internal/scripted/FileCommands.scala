@@ -19,13 +19,13 @@ class FileCommands(baseDirectory: File) extends BasicStatementHandler {
   lazy val commands = commandMap
   def commandMap =
     Map(
-      "touch" nonEmpty touch _,
-      "delete" nonEmpty delete _,
-      "exists" nonEmpty exists _,
-      "mkdir" nonEmpty makeDirectories _,
-      "absent" nonEmpty absent _,
+      "touch".nonEmpty(touch),
+      "delete".nonEmpty(delete),
+      "exists".nonEmpty(exists),
+      "mkdir".nonEmpty(makeDirectories),
+      "absent".nonEmpty(absent),
       //			"sync" twoArg("Two directory paths", sync _),
-      "newer".twoArg("Two paths", newer _),
+      "newer".twoArg("Two paths", newer),
       "pause" noArg {
         println("Pausing in " + baseDirectory)
         /*readLine("Press enter to continue. ") */
@@ -34,11 +34,11 @@ class FileCommands(baseDirectory: File) extends BasicStatementHandler {
         println()
       },
       "sleep".oneArg("Time in milliseconds", time => Thread.sleep(time.toLong)),
-      "exec" nonEmpty (execute _),
-      "copy" copy (to => rebase(baseDirectory, to)),
-      "copy-file".twoArg("Two paths", copyFile _),
-      "must-mirror".twoArg("Two paths", diffFiles _),
-      "copy-flat" copy flat
+      "exec".nonEmpty(execute),
+      "copy".copy(to => rebase(baseDirectory, to)),
+      "copy-file".twoArg("Two paths", copyFile),
+      "must-mirror".twoArg("Two paths", diffFiles),
+      "copy-flat".copy(flat),
     )
 
   def apply(command: String, arguments: List[String]): Unit =

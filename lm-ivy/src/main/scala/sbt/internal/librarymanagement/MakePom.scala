@@ -503,7 +503,7 @@ class MakePom(val log: Logger) {
     r match { case c: ChainResolver => flatten(castResolvers(c.getResolvers)); case _ => r :: Nil }
 
   // cast the contents of a pre-generics collection
-  private def castResolvers(s: java.util.Collection[_]): Seq[DependencyResolver] = {
+  private def castResolvers(s: java.util.Collection[?]): Seq[DependencyResolver] = {
     import scala.jdk.CollectionConverters._
     s.asScala.toSeq.map(_.asInstanceOf[DependencyResolver])
   }
@@ -531,7 +531,7 @@ class MakePom(val log: Logger) {
       configurations: Option[Iterable[Configuration]]
   ): Seq[DependencyDescriptor] = {
     val keepConfigurations = IvySbt.getConfigurations(module, configurations)
-    val keepSet: Set[String] = Set(keepConfigurations.toSeq: _*)
+    val keepSet: Set[String] = Set(keepConfigurations.toSeq*)
     def translate(dependency: DependencyDescriptor) = {
       val keep = dependency.getModuleConfigurations
         .filter((conf: String) => keepSet.contains(conf))

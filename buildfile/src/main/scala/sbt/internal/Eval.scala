@@ -382,7 +382,7 @@ object Eval:
       }
 
     def isTopLevelModule(sym: Symbols.Symbol)(using ctx: Context): Boolean =
-      (sym is Flags.Module) && (sym.owner is Flags.ModuleClass)
+      sym.is(Flags.Module) && sym.owner.is(Flags.ModuleClass)
 
     override def traverse(tree: tpd.Tree)(using ctx: Context): Unit =
       tree match

@@ -18,9 +18,8 @@ import _root_.sjsonnew.{
 import sjsonnew.shaded.scalajson.ast.unsafe._
 
 trait JsonRpcResponseMessageFormats {
-  self: sbt.internal.util.codec.JValueFormats
-    with sbt.internal.protocol.codec.JsonRpcResponseErrorFormats
-    with sjsonnew.BasicJsonProtocol =>
+  self: sbt.internal.util.codec.JValueFormats &
+    sbt.internal.protocol.codec.JsonRpcResponseErrorFormats & sjsonnew.BasicJsonProtocol =>
   implicit lazy val JsonRpcResponseMessageFormat
       : JsonFormat[sbt.internal.protocol.JsonRpcResponseMessage] =
     new JsonFormat[sbt.internal.protocol.JsonRpcResponseMessage] {

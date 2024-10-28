@@ -8,7 +8,7 @@ import sbt.internal.GrpcActionCacheStore
 object RemoteCachePlugin extends AutoPlugin:
   override def trigger = AllRequirements
   override def requires = JvmPlugin
-  override def globalSettings: Seq[Def.Setting[_]] = Seq(
+  override def globalSettings: Seq[Def.Setting[?]] = Seq(
     cacheStores := {
       val orig = cacheStores.value
       val remoteOpt = remoteCache.value

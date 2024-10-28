@@ -41,7 +41,7 @@ private[sbt] final class SimpleCommand(
     val tags: AttributeMap
 ) extends Command {
 
-  assert(Command validID name, s"'$name' is not a valid command name.")
+  assert(Command.validID(name), s"'$name' is not a valid command name.")
 
   def help = const(help0)
 
@@ -104,7 +104,7 @@ object Command {
 
   /** Construct a single-argument command with the given name and effect. */
   def single(name: String, help: Help = Help.empty)(f: (State, String) => State): Command =
-    make(name, help)(state => token(trimmed(spacedAny(name)) map apply1(f, state)))
+    make(name, help)(state => token(trimmed(spacedAny(name)).map(apply1(f, state))))
 
   def single(name: String, briefHelp: (String, String), detail: String)(
       f: (State, String) => State
@@ -117,7 +117,7 @@ object Command {
   def args(name: String, display: String, help: Help = Help.empty)(
       f: (State, Seq[String]) => State
   ): Command =
-    make(name, help)(state => spaceDelimited(display) map apply1(f, state))
+    make(name, help)(state => spaceDelimited(display).map(apply1(f, state)))
 
   def args(name: String, briefHelp: (String, String), detail: String, display: String)(
       f: (State, Seq[String]) => State
@@ -143,7 +143,7 @@ object Command {
 
   def validID(name: String): Boolean = DefaultParsers.matches(OpOrID, name)
 
-  def applyEffect[T](p: Parser[T])(f: T => State): Parser[() => State] = p map (t => () => f(t))
+  def applyEffect[T](p: Parser[T])(f: T => State): Parser[() => State] = p.map(t => () => f(t))
 
   def applyEffect[T](
       parser: State => Parser[T]
@@ -176,13 +176,11 @@ object Command {
       commandMap: Map[String, State => Parser[() => State]]
   ): State => Parser[() => State] =
     state =>
-      token(OpOrID examples commandMap.keys.toSet) flatMap (
-          id =>
-            (commandMap get id) match {
-              case None    => failure(invalidValue("command", commandMap.keys)(id))
-              case Some(c) => c(state)
-            }
-    )
+      token(OpOrID.examples(commandMap.keys.toSet)).flatMap: id =>
+        (commandMap get id) match {
+          case None    => failure(invalidValue("command", commandMap.keys)(id))
+          case Some(c) => c(state)
+        }
 
   // overload instead of default parameter to keep binary compatibility
   @deprecated("Use overload that takes the onParseError callback", since = "1.9.4")
@@ -250,7 +248,7 @@ private final class Help0(
   def ++(h: Help): Help =
     new Help0(
       Help0.this.brief ++ h.brief,
-      Map(Help0.this.detail.toSeq ++ h.detail.toSeq: _*),
+      Map(Help0.this.detail.toSeq ++ h.detail.toSeq*),
       more ++ h.more
     )
 }

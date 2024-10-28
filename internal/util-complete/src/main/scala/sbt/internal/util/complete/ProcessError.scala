@@ -19,7 +19,7 @@ object ProcessError {
   def extractLine(s: String, i: Int): (String, Int) = {
     val notNewline = (c: Char) => c != '\n' && c != '\r'
     val left = takeRightWhile(s.substring(0, i))(notNewline)
-    val right = s substring i takeWhile notNewline
+    val right = s.substring(i).takeWhile(notNewline)
     (left + right, left.length)
   }
 

@@ -51,7 +51,7 @@ object SettingQuery {
       index: KeyIndex,
       currentBuild: URI,
       defaultConfigs: Option[ResolvedReference] => Seq[String],
-      keyMap: Map[String, AttributeKey[_]]
+      keyMap: Map[String, AttributeKey[?]]
   ): Parser[Seq[Parser[ParsedKey]]] = {
     for {
       rawProject <- projectRef(index, currentBuild)
@@ -69,7 +69,7 @@ object SettingQuery {
       index: KeyIndex,
       currentBuild: URI,
       defaultConfigs: Option[ResolvedReference] => Seq[String],
-      keyMap: Map[String, AttributeKey[_]],
+      keyMap: Map[String, AttributeKey[?]],
       data: Settings[Scope]
   ): Parser[ParsedKey] =
     scopedKeyFull(index, currentBuild, defaultConfigs, keyMap) flatMap { choices =>
@@ -80,12 +80,12 @@ object SettingQuery {
       index: KeyIndex,
       currentBuild: URI,
       defaultConfigs: Option[ResolvedReference] => Seq[String],
-      keyMap: Map[String, AttributeKey[_]],
+      keyMap: Map[String, AttributeKey[?]],
       data: Settings[Scope]
-  ): Parser[ScopedKey[_]] =
+  ): Parser[ScopedKey[?]] =
     scopedKeySelected(index, currentBuild, defaultConfigs, keyMap, data).map(_.key)
 
-  def scopedKeyParser(structure: BuildStructure): Parser[ScopedKey[_]] =
+  def scopedKeyParser(structure: BuildStructure): Parser[ScopedKey[?]] =
     scopedKey(
       structure.index.keyIndex,
       structure.root,
@@ -97,11 +97,11 @@ object SettingQuery {
   def getSettingValue[A](structure: BuildStructure, key: Def.ScopedKey[A]): Either[String, A] =
     structure.data
       .get(key.scope, key.key)
-      .toRight(s"Key ${Def displayFull key} not found")
+      .toRight(s"Key ${Def.displayFull(key)} not found")
       .flatMap {
-        case _: Task[_] => Left(s"Key ${Def displayFull key} is a task, can only query settings")
+        case _: Task[_] => Left(s"Key ${Def.displayFull(key)} is a task, can only query settings")
         case _: InputTask[_] =>
-          Left(s"Key ${Def displayFull key} is an input task, can only query settings")
+          Left(s"Key ${Def.displayFull(key)} is an input task, can only query settings")
         case x => Right(x)
       }
 

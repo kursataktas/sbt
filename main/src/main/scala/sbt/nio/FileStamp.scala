@@ -177,9 +177,9 @@ object FileStamp {
           jsOpt match {
             case Some(js) =>
               unbuilder.beginObject(js)
-              val hashes = unbuilder.readField("hashes")(seqPathHashJsonFormatter)
+              val hashes = unbuilder.readField("hashes")(using seqPathHashJsonFormatter)
               val lastModifieds =
-                unbuilder.readField("lastModifiedTimes")(seqPathLastModifiedJsonFormatter)
+                unbuilder.readField("lastModifiedTimes")(using seqPathLastModifiedJsonFormatter)
               unbuilder.endObject()
               hashes ++ lastModifieds
             case None =>

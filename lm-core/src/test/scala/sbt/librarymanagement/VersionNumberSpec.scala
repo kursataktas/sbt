@@ -211,7 +211,7 @@ class VersionNumberSpec extends AnyFreeSpec with Matchers with Inside {
       case SemVer      => "SemVer"
       case PackVer     => "PackVer"
       case EarlySemVer => "EarlySemVer"
-      case _           => val s = vnc.name; if (s contains " ") s""""$s"""" else s
+      case _           => val s = vnc.name; if s.contains(" ") then s""""$s"""" else s
     }
     s"$prefix be $compatibilityStrategy compatible with $v2" in {
       vnc.isCompatible(VersionNumber(v1.value), VersionNumber(v2)) shouldBe expectOutcome

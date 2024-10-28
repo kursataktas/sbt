@@ -45,7 +45,7 @@ object Assign {
   val bk = taskKey[Seq[Int]]("b")
   val ck = settingKey[File]("c")
   val intTask = taskKey[Int]("int")
-  val sk = taskKey[Set[_]]("s")
+  val sk = taskKey[Set[?]]("s")
   val bgList = taskKey[Seq[Int]]("")
 
   val ik = inputKey[Int]("i")

@@ -71,7 +71,7 @@ object RemoteCache {
 
   lazy val defaultCacheLocation: File = SysProp.globalLocalCache
 
-  lazy val globalSettings: Seq[Def.Setting[_]] = Seq(
+  lazy val globalSettings: Seq[Def.Setting[?]] = Seq(
     remoteCacheId := "",
     remoteCacheIdCandidates := Nil,
     pushRemoteCacheTo :== None,
@@ -101,7 +101,7 @@ object RemoteCache {
     remoteCacheHeaders := SysProp.remoteCacheHeaders,
   )
 
-  lazy val projectSettings: Seq[Def.Setting[_]] = (Seq(
+  lazy val projectSettings: Seq[Def.Setting[?]] = (Seq(
     pushRemoteCache := ((Def
       .task {
         val arts = (pushRemoteCacheConfiguration / remoteCacheArtifacts).value
@@ -111,7 +111,7 @@ object RemoteCache {
             case _                         => None
           }
         }
-        ScopeFilter(configurations = inConfigurationsByKeys(configs: _*))
+        ScopeFilter(configurations = inConfigurationsByKeys(configs*))
       })
       .flatMapTask { case filter =>
         Def.task {
@@ -129,7 +129,7 @@ object RemoteCache {
             case _                         => None
           }
         }
-        ScopeFilter(configurations = inConfigurationsByKeys(configs: _*))
+        ScopeFilter(configurations = inConfigurationsByKeys(configs*))
       })
       .flatMapTask { case filter =>
         Def.task {
@@ -203,7 +203,7 @@ object RemoteCache {
 
   def configCacheSettings[A <: RemoteCacheArtifact](
       cacheArtifactTask: Def.Initialize[Task[A]]
-  ): Seq[Def.Setting[_]] =
+  ): Seq[Def.Setting[?]] =
     inTask(packageCache)(
       Seq(
         (Defaults.TaskZero / packageCache) := {
@@ -243,13 +243,16 @@ object RemoteCache {
           ModuleDescriptorConfiguration(remoteCacheProjectId.value, projectInfo.value)
             .withScalaModuleInfo(smi)
         },
-        (Defaults.TaskZero / pushRemoteCache) := (Def.task {
-          val s = streams.value
-          val config = pushRemoteCacheConfiguration.value
-          val is = (pushRemoteCache / ivySbt).value
-          val m = new is.Module(moduleSettings.value)
-          IvyActions.publish(m, config, s.log)
-        } tag (Tags.Publish, Tags.Network)).value,
+        (Defaults.TaskZero / pushRemoteCache) := (Def
+          .task {
+            val s = streams.value
+            val config = pushRemoteCacheConfiguration.value
+            val is = (pushRemoteCache / ivySbt).value
+            val m = new is.Module(moduleSettings.value)
+            IvyActions.publish(m, config, s.log)
+          }
+          .tag(Tags.Publish, Tags.Network))
+          .value,
       )
     ) ++ Seq(
       remoteCacheIdCandidates := List(remoteCacheId.value),

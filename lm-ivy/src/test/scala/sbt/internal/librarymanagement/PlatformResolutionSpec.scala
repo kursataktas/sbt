@@ -10,8 +10,10 @@ object PlatformResolutionSpec extends BaseIvySpecification {
     cleanCache()
     val m = exampleAutoModule(platform = None)
     assert(
-      update(m).configurations.head.modules.map(_.toString).mkString
-        contains "com.github.scopt:scopt_2.13:4.1.0"
+      update(m).configurations.head.modules
+        .map(_.toString)
+        .mkString
+        .contains("com.github.scopt:scopt_2.13:4.1.0")
     )
   }
 
@@ -19,8 +21,10 @@ object PlatformResolutionSpec extends BaseIvySpecification {
     cleanCache()
     val m = exampleAutoModule(platform = Some("sjs1"))
     assert(
-      update(m).configurations.head.modules.map(_.toString).mkString
-        contains "com.github.scopt:scopt_sjs1_2.13"
+      update(m).configurations.head.modules
+        .map(_.toString)
+        .mkString
+        .contains("com.github.scopt:scopt_sjs1_2.13")
     )
   }
 
@@ -33,8 +37,10 @@ object PlatformResolutionSpec extends BaseIvySpecification {
       platform = Some(sjs1),
     )
     assert(
-      update(m).configurations.head.modules.map(_.toString).mkString
-        contains "junit:junit:4.13.1"
+      update(m).configurations.head.modules
+        .map(_.toString)
+        .mkString
+        .contains("junit:junit:4.13.1")
     )
   }
 
@@ -47,8 +53,10 @@ object PlatformResolutionSpec extends BaseIvySpecification {
       platform = None,
     )
     assert(
-      update(m).configurations.head.modules.map(_.toString).mkString
-        contains "com.github.scopt:scopt_sjs1_2.13"
+      update(m).configurations.head.modules
+        .map(_.toString)
+        .mkString
+        .contains("com.github.scopt:scopt_sjs1_2.13")
     )
   }
 
@@ -61,8 +69,10 @@ object PlatformResolutionSpec extends BaseIvySpecification {
       platform = None,
     )
     assert(
-      update(m).configurations.head.modules.map(_.toString).mkString
-        contains "com.github.scopt:scopt_2.13:4.1.0"
+      update(m).configurations.head.modules
+        .map(_.toString)
+        .mkString
+        .contains("com.github.scopt:scopt_2.13:4.1.0")
     )
   }
 

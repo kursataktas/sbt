@@ -15,7 +15,9 @@ trait GlobalLockFormat { self: BasicJsonProtocol =>
   implicit lazy val globalLockIsoString: IsoString[GlobalLock] =
     IsoString.iso(_ => "<lock>", _ => NoGlobalLock)
 
-  implicit lazy val GlobalLockFormat: JsonFormat[GlobalLock] = isoStringFormat(globalLockIsoString)
+  implicit lazy val GlobalLockFormat: JsonFormat[GlobalLock] = isoStringFormat(using
+    globalLockIsoString
+  )
 }
 
 private[sbt] object GlobalLockFormats {

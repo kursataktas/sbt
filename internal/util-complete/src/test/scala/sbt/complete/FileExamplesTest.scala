@@ -70,12 +70,12 @@ class FileExamplesTest extends UnitSpec {
   }
 
   final class DirectoryStructure(withCompletionPrefix: String) {
-    var fileExamples: FileExamples = _
-    var baseDir: File = _
-    var childFiles: List[File] = _
-    var childDirectories: List[File] = _
-    var nestedFiles: List[File] = _
-    var nestedDirectories: List[File] = _
+    var fileExamples: FileExamples = scala.compiletime.uninitialized
+    var baseDir: File = scala.compiletime.uninitialized
+    var childFiles: List[File] = scala.compiletime.uninitialized
+    var childDirectories: List[File] = scala.compiletime.uninitialized
+    var nestedFiles: List[File] = scala.compiletime.uninitialized
+    var nestedDirectories: List[File] = scala.compiletime.uninitialized
 
     def allRelativizedPaths: List[String] =
       (childFiles ++ childDirectories ++ nestedFiles ++ nestedDirectories)
@@ -83,8 +83,8 @@ class FileExamplesTest extends UnitSpec {
 
     def prefixedPathsOnly: List[String] =
       allRelativizedPaths
-        .withFilter(_ startsWith withCompletionPrefix)
-        .map(_ substring withCompletionPrefix.length)
+        .withFilter(_.startsWith(withCompletionPrefix))
+        .map(_.substring(withCompletionPrefix.length))
 
     def createSampleDirStructure(tempDir: File): Unit = {
       childFiles = toChildFiles(tempDir, List("foo", "bar", "bazaar"))
