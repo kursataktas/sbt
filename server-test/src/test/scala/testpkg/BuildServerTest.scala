@@ -33,9 +33,9 @@ class BuildServerTest extends AbstractServerTest {
   test("build/initialize") {
     val id = initializeRequest()
     assert(svr.waitForString(10.seconds) { s =>
-      (s contains s""""id":"$id"""") &&
-      (s contains """"resourcesProvider":true""") &&
-      (s contains """"outputPathsProvider":true""")
+      s.contains(s""""id":"$id"""") &&
+      s.contains(""""resourcesProvider":true""") &&
+      s.contains(""""outputPathsProvider":true""")
     })
   }
 
@@ -93,7 +93,7 @@ class BuildServerTest extends AbstractServerTest {
       "project/src/main/scala-3",
       s"project/src/main/scala-sbt-${TestProperties.version}",
       "project/src/main/scala/",
-      "target/out/jvm/scala-3.3.4/buildserver-build/src_managed/main"
+      s"target/out/jvm/scala-${TestProperties.scalaVersion}/buildserver-build/src_managed/main"
     ).map(rel => new File(svr.baseDirectory.getAbsoluteFile, rel).toURI).sorted
     assert(sources == expectedSources)
   }

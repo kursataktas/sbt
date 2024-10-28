@@ -97,9 +97,9 @@ object BasicCommands {
   }
 
   private def earlyParser: State => Parser[String] = (s: State) => {
-    val p1 = token(EarlyCommand + "(") flatMap (_ => otherCommandParser(s) <~ token(")"))
-    val p2 = (token("-") | token("--")) flatMap (_ => levelParser)
-    val p3 = (token("-") | token("--")) flatMap (_ => addPluginSbtFileStringParser)
+    val p1 = token(EarlyCommand + "(").flatMap(_ => otherCommandParser(s) <~ token(")"))
+    val p2 = (token("-") | token("--")).flatMap(_ => levelParser)
+    val p3 = (token("-") | token("--")).flatMap(_ => addPluginSbtFileStringParser)
     p1 | p2 | p3
   }
 
@@ -280,8 +280,8 @@ object BasicCommands {
   lazy val otherCommandParser: State => Parser[String] =
     (s: State) => token(OptSpace ~> combinedLax(s, NotSpaceClass ~ any.*))
 
-  def combinedLax(s: State, any: Parser[_]): Parser[String] =
-    matched((s.combinedParser: Parser[_]) | token(any, hide = const(true)))
+  def combinedLax(s: State, any: Parser[?]): Parser[String] =
+    matched((s.combinedParser: Parser[?]) | token(any, hide = const(true)))
 
   def ifLast: Command =
     Command(IfLast, Help.more(IfLast, IfLastDetailed))(otherCommandParser)((s, arg) =>
@@ -340,7 +340,7 @@ object BasicCommands {
         def argsStr = args mkString ", "
         def cpStr = cp mkString File.pathSeparator
         def fromCpStr = if (cp.isEmpty) "" else s" from $cpStr"
-        state.log info s"Applying State transformations $argsStr$fromCpStr"
+        state.log.info(s"Applying State transformations $argsStr$fromCpStr")
         val loader =
           if (cp.isEmpty) parentLoader else toLoader(cp.map(f => Paths.get(f)), parentLoader)
         val loaded =
@@ -370,14 +370,14 @@ object BasicCommands {
     s.source match {
       case Some(c) if c.channelName.startsWith("network") =>
         s"${DisconnectNetworkChannel} ${c.channelName}" :: s
-      case _ => s exit true
+      case _ => s.exit(true)
     }
   }
   def shutdown: Command = Command.command(Shutdown, shutdownBrief, shutdownBrief) { s =>
     s.source match {
       case Some(c) if c.channelName.startsWith("network") =>
         s"${DisconnectNetworkChannel} ${c.channelName}" :: (Exec(Shutdown, None) +: s)
-      case _ => s exit true
+      case _ => s.exit(true)
     }
   }
 
@@ -395,7 +395,7 @@ object BasicCommands {
 
   def historyParser(s: State): Parser[() => State] =
     Command.applyEffect(HistoryCommands.actionParser) { histFun =>
-      val hp = (s get historyPath).flatten
+      val hp = s.get(historyPath).flatten
       val lines = hp.toList.flatMap(p => IO.readLines(p)).toIndexedSeq
       histFun(CHistory(lines, hp)) match {
         case Some(commands) =>
@@ -406,8 +406,10 @@ object BasicCommands {
     }
 
   def oldshell: Command = Command.command(OldShell, Help.more(Shell, OldShellDetailed)) { s =>
-    val history = (s get historyPath) getOrElse (new File(s.baseDir, ".history")).some
-    val prompt = (s get shellPrompt) match { case Some(pf) => pf(s); case None => "> " }
+    val history = s.get(historyPath).getOrElse(new File(s.baseDir, ".history").some)
+    val prompt = s.get(shellPrompt) match
+      case Some(pf) => pf(s)
+      case None     => "> "
     val reader = new FullReader(history, s.combinedParser, LineReader.HandleCONT, Terminal.console)
     val line = reader.readLine(prompt)
     line match {
@@ -427,7 +429,7 @@ object BasicCommands {
     Command(Client, Help.more(Client, ClientDetailed))(_ => clientParser)(runClient)
 
   def clientParser: Parser[Seq[String]] =
-    (token(Space) ~> repsep(StringBasic, token(Space))) | (token(EOF) map (_ => nilSeq))
+    (token(Space) ~> repsep(StringBasic, token(Space))) | (token(EOF).map(_ => nilSeq))
 
   def runClient(s0: State, inputArg: Seq[String]): State = {
     val arguments = inputArg.toList ++
@@ -485,7 +487,7 @@ object BasicCommands {
 
   def alias: Command =
     Command(AliasCommand, Help.more(AliasCommand, AliasDetailed)) { s =>
-      val name = token(OpOrID.examples(aliasNames(s): _*))
+      val name = token(OpOrID.examples(aliasNames(s)*))
       val assign = token(OptSpace ~ '=' ~ OptSpace)
       val sfree = removeAliases(s)
       val to = matched(sfree.combinedParser, partial = true).failOnException | any.+.string
@@ -500,13 +502,12 @@ object BasicCommands {
       case _                              => printAliases(s); s
     }
   def addAlias(s: State, name: String, value: String): State =
-    if (Command validID name) {
+    if Command.validID(name) then
       val removed = removeAlias(s, name)
-      if (value.isEmpty) removed else addAlias0(removed, name, value)
-    } else {
+      if value.isEmpty then removed else addAlias0(removed, name, value)
+    else
       System.err.println("Invalid alias name '" + name + "'.")
       s.fail
-    }
   private def addAlias0(s: State, name: String, value: String): State =
     s.copy(definedCommands = newAlias(name, value) +: s.definedCommands)
 
@@ -515,18 +516,18 @@ object BasicCommands {
   def removeAlias(s: State, name: String): State =
     s.copy(definedCommands = s.definedCommands.filter(c => !isAliasNamed(name, c)))
 
-  def removeTagged(s: State, tag: AttributeKey[_]): State =
+  def removeTagged(s: State, tag: AttributeKey[?]): State =
     s.copy(definedCommands = removeTagged(s.definedCommands, tag))
 
-  def removeTagged(as: Seq[Command], tag: AttributeKey[_]): Seq[Command] =
-    as.filter(c => !(c.tags contains tag))
+  def removeTagged(as: Seq[Command], tag: AttributeKey[?]): Seq[Command] =
+    as.filter(c => !(c.tags.contains(tag)))
 
   def isAliasNamed(name: String, c: Command): Boolean = isNamed(name, getAlias(c))
 
   def isNamed(name: String, alias: Option[(String, String)]): Boolean =
     alias match { case None => false; case Some((n, _)) => name == n }
 
-  def getAlias(c: Command): Option[(String, String)] = c.tags get CommandAliasKey
+  def getAlias(c: Command): Option[(String, String)] = c.tags.get(CommandAliasKey)
   def printAlias(s: State, name: String): Unit = printAliases(aliases(s, (n, _) => n == name))
   def printAliases(s: State): Unit = printAliases(allAliases(s))
 

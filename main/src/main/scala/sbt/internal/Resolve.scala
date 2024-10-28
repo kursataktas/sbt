@@ -13,16 +13,16 @@ import sbt.internal.util.AttributeKey
 
 object Resolve {
   def apply(
-      index: BuildUtil[_],
+      index: BuildUtil[?],
       current: ScopeAxis[Reference],
-      key: AttributeKey[_],
+      key: AttributeKey[?],
       mask: ScopeMask,
   ): Scope => Scope = {
     val rs = (
-      resolveProject(current, mask) _
-        :: resolveExtra(mask) _
-        :: resolveTask(mask) _
-        :: resolveConfig(index, key, mask) _
+      resolveProject(current, mask)
+        :: resolveExtra(mask)
+        :: resolveTask(mask)
+        :: resolveConfig(index, key, mask)
         :: Nil
     )
     scope => rs.foldLeft(scope)((s, f) => f(s))
@@ -40,7 +40,7 @@ object Resolve {
     if (mask.extra) scope
     else scope.copy(extra = Zero)
 
-  def resolveConfig[P](index: BuildUtil[P], key: AttributeKey[_], mask: ScopeMask)(
+  def resolveConfig[P](index: BuildUtil[P], key: AttributeKey[?], mask: ScopeMask)(
       scope: Scope,
   ): Scope =
     if (mask.config) scope
@@ -48,7 +48,7 @@ object Resolve {
       val (resolvedRef, proj) = scope.project match {
         case Zero | This => (None, index.thisRootProject)
         case Select(ref) =>
-          val r = index resolveRef ref
+          val r = index.resolveRef(ref)
           (Some(r), index.projectFor(r))
       }
       val task = scope.task.toOption

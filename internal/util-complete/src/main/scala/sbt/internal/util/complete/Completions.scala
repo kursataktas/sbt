@@ -16,7 +16,7 @@ package complete
 sealed trait Completions {
   def get: Set[Completion]
 
-  final def x(o: Completions): Completions = flatMap(_ x o)
+  final infix def x(o: Completions): Completions = flatMap(_ x o)
   final def ++(o: Completions): Completions = Completions(get ++ o.get)
   final def +:(o: Completion): Completions = Completions(get + o)
   final def filter(f: Completion => Boolean): Completions = Completions(get filter f)
@@ -90,8 +90,9 @@ sealed trait Completion {
   /** Appends the completions in `o` with the completions in this Completion. */
   def ++(o: Completion): Completion = Completion.concat(this, o)
 
-  final def x(o: Completions): Completions =
-    if (Completion evaluatesRight this) o.map(this ++ _) else Completions.strict(Set.empty + this)
+  final infix def x(o: Completions): Completions =
+    if Completion.evaluatesRight(this) then o.map(this ++ _)
+    else Completions.strict(Set.empty + this)
 
   override final lazy val hashCode = Completion.hashCode(this)
   override final def equals(o: Any) = o match {

@@ -36,7 +36,7 @@ private[sbt] object PluginCross {
       }
     }
 
-    def crossExclude(s: Def.Setting[_]): Boolean =
+    def crossExclude(s: Def.Setting[?]): Boolean =
       s.key match {
         case ScopedKey(Scope(_, _, pluginCrossBuild.key, _), sbtVersion.key) => true
         case _                                                               => false
@@ -71,7 +71,10 @@ private[sbt] object PluginCross {
     def crossVersions(state: State): List[String] = {
       val x = Project.extract(state)
       import x._
-      ((currentRef / crossSbtVersions) get structure.data getOrElse Nil).toList
+      (currentRef / crossSbtVersions)
+        .get(structure.data)
+        .getOrElse(Nil)
+        .toList
     }
     Command.arb(requireSession(crossParser), pluginCrossHelp) { case (state, command) =>
       val x = Project.extract(state)

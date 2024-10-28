@@ -166,7 +166,7 @@ object CoursierInputsTasks {
         val state = sbt.Keys.state.value
         val projectRef = sbt.Keys.thisProjectRef.value
         val projectRefs = Project.transitiveInterDependencies(state, projectRef)
-        ScopeFilter(inProjects(projectRefs :+ projectRef: _*))
+        ScopeFilter(inProjects(projectRefs :+ projectRef*))
       })
       .flatMapTask { case filter =>
         Def.task {
@@ -214,7 +214,7 @@ object CoursierInputsTasks {
         val s = state.value
         val projectRef = thisProjectRef.value
         val projects = Project.transitiveInterDependencies(s, projectRef)
-        ScopeFilter(inProjects(projectRef +: projects: _*))
+        ScopeFilter(inProjects(projectRef +: projects*))
       })
       .flatMapTask { case filter =>
         Def.task {

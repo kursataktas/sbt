@@ -57,43 +57,43 @@ end BuildSyntax
 object Def extends BuildSyntax with Init[Scope] with InitializeImplicits:
   type Classpath = Seq[Attributed[HashedVirtualFileRef]]
 
-  def settings(ss: SettingsDefinition*): Seq[Setting[_]] = ss.flatMap(_.settings)
+  def settings(ss: SettingsDefinition*): Seq[Setting[?]] = ss.flatMap(_.settings)
 
   val onComplete = SettingKey[() => Unit](
     "onComplete",
     "Hook to run when task evaluation completes.  The type of this setting is subject to change, pending the resolution of SI-2915."
   ) // .withRank(DSetting)
-  val triggeredBy = AttributeKey[Seq[Task[_]]]("triggered-by")
-  val runBefore = AttributeKey[Seq[Task[_]]]("run-before")
-  val resolvedScoped = SettingKey[ScopedKey[_]](
+  val triggeredBy = AttributeKey[Seq[Task[?]]]("triggered-by")
+  val runBefore = AttributeKey[Seq[Task[?]]]("run-before")
+  val resolvedScoped = SettingKey[ScopedKey[?]](
     "resolved-scoped",
     "The ScopedKey for the referencing setting or task.",
     KeyRanks.DSetting
   )
-  private[sbt] val taskDefinitionKey = AttributeKey[ScopedKey[_]](
+  private[sbt] val taskDefinitionKey = AttributeKey[ScopedKey[?]](
     "task-definition-key",
     "Internal: used to map a task back to its ScopedKey.",
     Invisible
   )
 
-  lazy val showFullKey: Show[ScopedKey[_]] = showFullKey(None)
+  lazy val showFullKey: Show[ScopedKey[?]] = showFullKey(None)
 
-  def showFullKey(keyNameColor: Option[String]): Show[ScopedKey[_]] =
-    Show[ScopedKey[_]]((key: ScopedKey[_]) => displayFull(key, keyNameColor))
+  def showFullKey(keyNameColor: Option[String]): Show[ScopedKey[?]] =
+    Show[ScopedKey[?]]((key: ScopedKey[?]) => displayFull(key, keyNameColor))
 
   @deprecated("Use showRelativeKey2 which doesn't take the unused multi param", "1.1.1")
   def showRelativeKey(
       current: ProjectRef,
       multi: Boolean,
       keyNameColor: Option[String] = None
-  ): Show[ScopedKey[_]] =
+  ): Show[ScopedKey[?]] =
     showRelativeKey2(current, keyNameColor)
 
   def showRelativeKey2(
       current: ProjectRef,
       keyNameColor: Option[String] = None,
-  ): Show[ScopedKey[_]] =
-    Show[ScopedKey[_]](key => {
+  ): Show[ScopedKey[?]] =
+    Show[ScopedKey[?]](key => {
       val color: String => String = withColor(_, keyNameColor)
       key.scope.extra.toOption
         .flatMap(_.get(Scope.customShowString).map(color))
@@ -104,7 +104,7 @@ object Def extends BuildSyntax with Init[Scope] with InitializeImplicits:
 
   private[sbt] def showShortKey(
       keyNameColor: Option[String],
-  ): Show[ScopedKey[_]] = {
+  ): Show[ScopedKey[?]] = {
     def displayShort(
         project: Reference
     ): String = {
@@ -115,7 +115,7 @@ object Def extends BuildSyntax with Init[Scope] with InitializeImplicits:
         case _                => Reference.display(project) + trailing
       }
     }
-    Show[ScopedKey[_]](key =>
+    Show[ScopedKey[?]](key =>
       Scope.display(
         key.scope,
         withColor(key.key.label, keyNameColor),
@@ -129,14 +129,14 @@ object Def extends BuildSyntax with Init[Scope] with InitializeImplicits:
       currentBuild: URI,
       multi: Boolean,
       keyNameColor: Option[String] = None,
-  ): Show[ScopedKey[_]] =
+  ): Show[ScopedKey[?]] =
     showBuildRelativeKey2(currentBuild, keyNameColor)
 
   def showBuildRelativeKey2(
       currentBuild: URI,
       keyNameColor: Option[String] = None,
-  ): Show[ScopedKey[_]] =
-    Show[ScopedKey[_]](key =>
+  ): Show[ScopedKey[?]] =
+    Show[ScopedKey[?]](key =>
       Scope.display(
         key.scope,
         withColor(key.key.label, keyNameColor),
@@ -193,15 +193,15 @@ object Def extends BuildSyntax with Init[Scope] with InitializeImplicits:
       case _                             => Reference.display(project) + " /"
     }
 
-  def displayFull(scoped: ScopedKey[_]): String = displayFull(scoped, None)
+  def displayFull(scoped: ScopedKey[?]): String = displayFull(scoped, None)
 
-  def displayFull(scoped: ScopedKey[_], keyNameColor: Option[String]): String =
+  def displayFull(scoped: ScopedKey[?], keyNameColor: Option[String]): String =
     Scope.display(scoped.scope, withColor(scoped.key.label, keyNameColor))
 
-  def displayMasked(scoped: ScopedKey[_], mask: ScopeMask): String =
+  def displayMasked(scoped: ScopedKey[?], mask: ScopeMask): String =
     Scope.displayMasked(scoped.scope, scoped.key.label, mask)
 
-  def displayMasked(scoped: ScopedKey[_], mask: ScopeMask, showZeroConfig: Boolean): String =
+  def displayMasked(scoped: ScopedKey[?], mask: ScopeMask, showZeroConfig: Boolean): String =
     Scope.displayMasked(scoped.scope, scoped.key.label, mask, showZeroConfig)
 
   def withColor(s: String, color: Option[String]): String =
@@ -229,9 +229,9 @@ object Def extends BuildSyntax with Init[Scope] with InitializeImplicits:
     else if (s1 == GlobalScope) Some(s2) // s2 is more specific
     else super.intersect(s1, s2)
 
-  private def definedSettingString(s: Setting[_]): String =
+  private def definedSettingString(s: Setting[?]): String =
     s"derived setting ${s.key.key.label}${positionString(s)}"
-  private def positionString(s: Setting[_]): String =
+  private def positionString(s: Setting[?]): String =
     s.positionString match { case None => ""; case Some(pos) => s" defined at $pos" }
 
   /**
@@ -417,7 +417,7 @@ object Def extends BuildSyntax with Init[Scope] with InitializeImplicits:
     inline def toTask(arg: String): Initialize[Task[A1]] =
       import TaskExtra.singleInputTask
       FullInstance.flatten(
-        (Def.stateKey zipWith in)((sTask, it) =>
+        Def.stateKey.zipWith(in)((sTask, it) =>
           sTask map { s =>
             Parser.parse(arg, it.parser(s)) match
               case Right(a) => Def.value[Task[A1]](a)
@@ -460,7 +460,7 @@ object Def extends BuildSyntax with Init[Scope] with InitializeImplicits:
     base.copy(info = base.info.set(isDummyTask, true))
   }
 
-  private[sbt] def isDummy(t: Task[_]): Boolean =
+  private[sbt] def isDummy(t: Task[?]): Boolean =
     t.info.attributes.get(isDummyTask) getOrElse false
 end Def
 

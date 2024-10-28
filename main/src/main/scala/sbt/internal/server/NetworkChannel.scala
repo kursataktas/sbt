@@ -439,7 +439,7 @@ final class NetworkChannel(
               .map(c => cp.query + c)
           }
           val (items, cachedMainClassNames, cachedTestNames) = {
-            val scopedKeyParser: Parser[Seq[Def.ScopedKey[_]]] =
+            val scopedKeyParser: Parser[Seq[Def.ScopedKey[?]]] =
               Act.aggregatedKeyParser(sstate) <~ Parsers.any.*
             Parser.parse(cp.query, scopedKeyParser) match {
               case Right(keys) =>
@@ -687,7 +687,7 @@ final class NetworkChannel(
     if (!list.isEmpty) jsonRpcNotify(Serialization.systemOut, list.asScala.toSeq)
   }
 
-  private lazy val outputStream: OutputStream with AutoCloseable = new OutputStream
+  private lazy val outputStream: OutputStream & AutoCloseable = new OutputStream
     with AutoCloseable {
     /*
      * We buffer calls to flush to the remote client so that it is called at most
@@ -700,7 +700,7 @@ final class NetworkChannel(
      * probably long enough to catch each burst but short enough to not introduce
      * noticeable latency.
      */
-    private val flushFuture = new AtomicReference[java.util.concurrent.Future[_]]
+    private val flushFuture = new AtomicReference[java.util.concurrent.Future[?]]
     override def close(): Unit = {
       forceFlush()
     }

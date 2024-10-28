@@ -36,16 +36,16 @@ class UpdateReportSpec extends AnyFlatSpec with Matchers {
 
   lazy val moduleReport = (
     ModuleReport(ModuleID("org", "name", "1.0"), Vector.empty, Vector.empty)
-      withPublicationDate Some(epochCalendar)
+      .withPublicationDate(Some(epochCalendar))
   )
 
   lazy val organizationArtifactReport =
     OrganizationArtifactReport("org", "name", Vector(moduleReport))
 
   val epochCalendar: java.util.Calendar = {
-    val utc = java.util.TimeZone getTimeZone "UTC"
+    val utc = java.util.TimeZone.getTimeZone("UTC")
     val c = new java.util.GregorianCalendar(utc, java.util.Locale.ENGLISH)
-    c setTimeInMillis 0L
+    c.setTimeInMillis(0L)
     c
   }
 }

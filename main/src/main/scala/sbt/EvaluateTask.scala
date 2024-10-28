@@ -333,7 +333,7 @@ object EvaluateTask {
   ): T =
     (extracted.currentRef / key).get(structure.data).getOrElse(default)
 
-  def injectSettings: Seq[Setting[_]] = Seq(
+  def injectSettings: Seq[Setting[?]] = Seq(
     Global / state ::= dummyState,
     Global / streamsManager ::= Def.dummyStreamsManager,
     Global / executionRoots ::= dummyRoots,
@@ -392,12 +392,12 @@ object EvaluateTask {
     }
   }
 
-  def logIncResult(result: Result[_], state: State, streams: Streams) = result match {
+  def logIncResult(result: Result[?], state: State, streams: Streams) = result match {
     case Result.Inc(i) => logIncomplete(i, state, streams); case _ => ()
   }
 
   def logIncomplete(result: Incomplete, state: State, streams: Streams): Unit = {
-    val all = Incomplete linearize result
+    val all = Incomplete.linearize(result)
     val keyed =
       all collect { case Incomplete(Some(key: ScopedKey[_]), _, msg, _, ex) =>
         (key, msg, ex)
@@ -426,10 +426,10 @@ object EvaluateTask {
   private def contextDisplay(state: State, highlight: Boolean) =
     Project.showContextKey(state, if (highlight) Some(RED) else None)
 
-  def suppressedMessage(key: ScopedKey[_])(implicit display: Show[ScopedKey[_]]): String =
+  def suppressedMessage(key: ScopedKey[?])(implicit display: Show[ScopedKey[?]]): String =
     "Stack trace suppressed.  Run 'last %s' for the full log.".format(display.show(key))
 
-  def getStreams(key: ScopedKey[_], streams: Streams): TaskStreams =
+  def getStreams(key: ScopedKey[?], streams: Streams): TaskStreams =
     streams(ScopedKey(Project.fillTaskAxis(key).scope, Keys.streams.key))
 
   def withStreams[T](structure: BuildStructure, state: State)(f: Streams => T): T = {
@@ -456,7 +456,7 @@ object EvaluateTask {
   def nodeView(
       state: State,
       streams: Streams,
-      roots: Seq[ScopedKey[_]],
+      roots: Seq[ScopedKey[?]],
       dummies: DummyTaskMap = DummyTaskMap(Nil)
   ): NodeView =
     Transform(
@@ -568,7 +568,7 @@ object EvaluateTask {
       state: State,
       streams: Streams
   ): Unit =
-    for (referenced <- (Global / Previous.references) get Project.structure(state).data)
+    for (referenced <- (Global / Previous.references).get(Project.structure(state).data))
       Previous.complete(referenced, results, streams)
 
   def applyResults[T](
@@ -582,7 +582,7 @@ object EvaluateTask {
     Function.chain(
       results.toTypedSeq flatMap {
         case results.TPair(_, Result.Value(KeyValue(_, st: StateTransform))) => Some(st.transform)
-        case results.TPair(Task(info, _), Result.Value(v)) => info.post(v) get transformState
+        case results.TPair(Task(info, _), Result.Value(v)) => info.post(v).get(transformState)
         case _                                             => Nil
       }
     )
@@ -647,7 +647,7 @@ object EvaluateTask {
     }
 
   // if the return type Seq[Setting[_]] is not explicitly given, scalac hangs
-  val injectStreams: ScopedKey[_] => Seq[Setting[_]] = scoped =>
+  val injectStreams: ScopedKey[?] => Seq[Setting[?]] = scoped =>
     if (scoped.key == streams.key) {
       Seq(scoped.scope / streams := {
         (streamsManager.map { mgr =>

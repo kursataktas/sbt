@@ -251,8 +251,8 @@ object LMCoursier {
       logger.debug(s"downloaded $url")
   }
 
-  def publicationsSetting(packageConfigs: Seq[(Configuration, CConfiguration)]): Def.Setting[_] = {
-    csrPublications := CoursierArtifactsTasks.coursierPublicationsTask(packageConfigs: _*).value
+  def publicationsSetting(packageConfigs: Seq[(Configuration, CConfiguration)]): Def.Setting[?] = {
+    csrPublications := CoursierArtifactsTasks.coursierPublicationsTask(packageConfigs*).value
   }
 
   // This emulates Ivy's credential registration which basically keeps mutating global registry

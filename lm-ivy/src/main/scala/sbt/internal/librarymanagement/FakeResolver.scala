@@ -113,7 +113,7 @@ private[sbt] class FakeResolver(private var name: String, cacheDir: File, module
     val mrid = dd.getDependencyRevisionId()
 
     val artifact = modules get ((organisation, name, revision)) map { arts =>
-      val artifacts: Array[DependencyArtifactDescriptor] = arts.toArray map (_ artifactOf dd)
+      val artifacts: Array[DependencyArtifactDescriptor] = arts.toArray.map(_.artifactOf(dd))
       val moduleDescriptor = DefaultModuleDescriptor.newDefaultInstance(mrid, artifacts)
       val defaultArtifact = arts.headOption match {
         case Some(FakeArtifact(name, tpe, ext, _)) =>
@@ -163,13 +163,13 @@ private[sbt] class FakeResolver(private var name: String, cacheDir: File, module
 
   override def listTokenValues(
       tokens: Array[String],
-      criteria: java.util.Map[_, _]
-  ): Array[java.util.Map[_, _]] =
+      criteria: java.util.Map[?, ?]
+  ): Array[java.util.Map[?, ?]] =
     Array.empty
 
   override def listTokenValues(
       token: String,
-      otherTokenValues: java.util.Map[_, _]
+      otherTokenValues: java.util.Map[?, ?]
   ): Array[String] =
     Array.empty
 

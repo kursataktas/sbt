@@ -87,7 +87,7 @@ object FullInstance:
     type Tup = (Task[Initialize[Task[A1]]], Task[SS], [a] => Initialize[a] => Initialize[a])
     Def.app[Tup, Task[A1]]((in, settingsData, Def.capturedTransformations)) {
       case (a: Task[Initialize[Task[A1]]], data: Task[SS], f) =>
-        TaskExtra.multT2Task((a, data)).flatMapN { case (a, d) => f(a) evaluate d }
+        TaskExtra.multT2Task((a, data)).flatMapN { case (a, d) => f(a).evaluate(d) }
     }
 
   def flattenFun[A1, A2](
@@ -96,7 +96,7 @@ object FullInstance:
     type Tup = (Task[A1 => Initialize[Task[A2]]], Task[SS], [a] => Initialize[a] => Initialize[a])
     Def.app[Tup, A1 => Task[A2]]((in, settingsData, Def.capturedTransformations)) {
       case (a: Task[A1 => Initialize[Task[A2]]] @unchecked, data: Task[SS] @unchecked, f) =>
-        (s: A1) => TaskExtra.multT2Task((a, data)).flatMapN { case (af, d) => f(af(s)) evaluate d }
+        (s: A1) => TaskExtra.multT2Task((a, data)).flatMapN { case (af, d) => f(af(s)).evaluate(d) }
     }
 
 end FullInstance

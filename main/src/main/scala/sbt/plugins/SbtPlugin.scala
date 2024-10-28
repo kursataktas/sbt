@@ -15,7 +15,7 @@ import sbt.Keys.*
 object SbtPlugin extends AutoPlugin:
   override def requires = ScriptedPlugin
 
-  override lazy val projectSettings: Seq[Setting[_]] = Seq(
+  override lazy val projectSettings: Seq[Setting[?]] = Seq(
     sbtPlugin := true,
     pluginCrossBuild / sbtVersion := {
       scalaBinaryVersion.value match

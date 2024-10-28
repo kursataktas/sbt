@@ -18,7 +18,7 @@ import sbt.util.Applicative
 /** Parses input and produces a task to run.  Constructed using the companion object. */
 final class InputTask[A1] private (val parser: State => Parser[Task[A1]]):
   def mapTask[S](f: Task[A1] => Task[S]): InputTask[S] =
-    InputTask[S](s => parser(s) map f)
+    InputTask[S](s => parser(s).map(f))
 
   def partialInput(in: String): InputTask[A1] =
     InputTask[A1](s => Parser(parser(s))(in))
@@ -75,7 +75,7 @@ object InputTask:
   def free[A1](p: State => Parser[Task[A1]]): InputTask[A1] = make(p)
 
   def free[A1, A2](p: State => Parser[A1])(c: A1 => Task[A2]): InputTask[A2] =
-    free(s => p(s) map c)
+    free(s => p(s).map(c))
 
   def separate[A1, A2](
       p: State => Parser[A1]

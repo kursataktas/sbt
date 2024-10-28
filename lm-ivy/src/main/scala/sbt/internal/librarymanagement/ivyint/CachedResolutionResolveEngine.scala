@@ -285,7 +285,7 @@ private[sbt] class CachedResolutionResolveCache {
     ): (Vector[ModuleReport], Vector[ModuleReport]) = {
       val moduleIdMap = Map(conflicts map { x =>
         x.module -> x
-      }: _*)
+      }*)
       (
         surviving map moduleIdMap,
         evicted map moduleIdMap map {
@@ -412,7 +412,7 @@ private[sbt] trait CachedResolutionResolveEngine extends ResolveEngine {
             }
             log.debug("- Unresolved path " + path.toString)
             m -> path
-          }: _*)
+          }*)
           val failed = failedPaths.keys.toSeq
           Left(new ResolveException(messages, failed, failedPaths))
         }
@@ -507,7 +507,7 @@ private[sbt] trait CachedResolutionResolveEngine extends ResolveEngine {
           )
       }
     }
-    new ResolveException(messages, failed, ListMap(failedPaths: _*))
+    new ResolveException(messages, failed, ListMap(failedPaths*))
   }
 
   def mergeReports(
@@ -589,7 +589,7 @@ private[sbt] trait CachedResolutionResolveEngine extends ResolveEngine {
           oar.organization == organization && oar.name == name
         }
         ((organization, name), xs)
-      }: _*)
+      }*)
     // this returns a List of Lists of (org, name). should be deterministic
     def detectLoops(
         allModules: Map[(String, String), Vector[OrganizationArtifactReport]]
@@ -625,7 +625,7 @@ private[sbt] trait CachedResolutionResolveEngine extends ResolveEngine {
       loopLists.toList
     }
     val allModules2: mutable.Map[(String, String), Vector[OrganizationArtifactReport]] =
-      mutable.Map(allModules0.toSeq: _*)
+      mutable.Map(allModules0.toSeq*)
     @tailrec def breakLoops(loops: List[List[(String, String)]]): Unit =
       loops match {
         case Nil => ()
@@ -836,7 +836,7 @@ private[sbt] trait CachedResolutionResolveEngine extends ResolveEngine {
           }
           Seq(((organization, name), oars))
       }
-    Map(reports: _*)
+    Map(reports*)
   }
 
   /**
@@ -988,7 +988,7 @@ private[sbt] trait CachedResolutionResolveEngine extends ResolveEngine {
         node.getRealConfs(conf).toVector
       }
       conf0.getName -> remapped
-    }: _*)
+    }*)
     // This emulates test-internal extending test configuration etc.
     val remappedConfigs: Map[String, Vector[String]] =
       rootModuleConfs.foldLeft(remappedConfigs0) { (acc0, c) =>

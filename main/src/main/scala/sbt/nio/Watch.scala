@@ -286,7 +286,7 @@ object Watch {
   // For now leave this private in case this isn't the best unapply type signature since it can't
   // be evolved in a binary compatible way.
   object Run {
-    def apply(commands: String*): Run = new Watch.Run(commands: _*)
+    def apply(commands: String*): Run = new Watch.Run(commands*)
     def unapply(r: Run): Option[List[Exec]] = Some(r.commands.toList.map(Exec(_, None)))
   }
 
@@ -616,7 +616,7 @@ object Watch {
       defaultOnTriggerMessage(count, path, commands)
   }.label("Watch.clearScreenOnTrigger")
 
-  private[sbt] def defaults: Seq[Def.Setting[_]] = Seq(
+  private[sbt] def defaults: Seq[Def.Setting[?]] = Seq(
     sbt.Keys.watchAntiEntropy :== Watch.defaultAntiEntropy,
     watchAntiEntropyRetentionPeriod :== Watch.defaultAntiEntropyRetentionPeriod,
     watchLogLevel :== Level.Info,

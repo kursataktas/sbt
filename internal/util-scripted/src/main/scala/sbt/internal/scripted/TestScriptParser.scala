@@ -109,7 +109,7 @@ class TestScriptParser(handlers: Map[Char, StatementHandler]) extends RegexParse
     ("\'" ~> "[^'\n\r]*".r <~ "\'") | "\"[^\"\n\r]*\"".r | WordRegex
 
   def startCharacterParser: Parser[Char] =
-    elem("start character", handlers.contains _) |
+    elem("start character", handlers.contains) |
       (
         (newline | err("expected start character " + handlers.keys.mkString("(", "", ")")))
           ~> failure("end of input")

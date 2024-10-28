@@ -362,7 +362,7 @@ object MainLoop {
           case _: xsbti.Reboot   => ExitCode.Success
           case x =>
             val clazz = if (x eq null) "" else " (class: " + x.getClass + ")"
-            state.log debug s"Unknown main result: $x$clazz"
+            state.log.debug(s"Unknown main result: $x$clazz")
             ExitCode.Unknown
         }
     }

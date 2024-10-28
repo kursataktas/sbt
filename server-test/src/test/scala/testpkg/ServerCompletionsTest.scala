@@ -19,7 +19,7 @@ class ServerCompletionsTest extends AbstractServerTest {
       s"""{ "jsonrpc": "2.0", "id": 15, "method": "sbt/completion", "params": $completionStr }"""
     )
     assert(svr.waitForString(10.seconds) { s =>
-      s contains """"result":{"items":["""
+      s.contains(""""result":{"items":[""")
     })
   }
 
@@ -29,7 +29,7 @@ class ServerCompletionsTest extends AbstractServerTest {
       s"""{ "jsonrpc": "2.0", "id": 16, "method": "sbt/completion", "params": $completionStr }"""
     )
     assert(svr.waitForString(10.seconds) { s =>
-      s contains """"result":{"items":["hello"]"""
+      s.contains(""""result":{"items":["hello"]""")
     })
   }
 

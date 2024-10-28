@@ -12,7 +12,7 @@ import sjsonnew.shaded.scalajson.ast.unsafe.JValue
 import sjsonnew.{ Builder, DeserializationException, JsonFormat, Unbuilder, deserializationError }
 
 trait JsonRpcRequestMessageFormats {
-  self: sbt.internal.util.codec.JValueFormats with sjsonnew.BasicJsonProtocol =>
+  self: sbt.internal.util.codec.JValueFormats & sjsonnew.BasicJsonProtocol =>
   implicit lazy val JsonRpcRequestMessageFormat
       : JsonFormat[sbt.internal.protocol.JsonRpcRequestMessage] =
     new JsonFormat[sbt.internal.protocol.JsonRpcRequestMessage] {

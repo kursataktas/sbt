@@ -52,7 +52,7 @@ sealed trait AttributeKey[A]:
    * will delegate to the values associated with these keys. The delegation proceeds in order the
    * keys are returned here.
    */
-  def extend: Seq[AttributeKey[_]]
+  def extend: Seq[AttributeKey[?]]
 
   /**
    * Specifies whether this key is a local, anonymous key (`true`) or not (`false`). This is
@@ -104,14 +104,14 @@ object AttributeKey {
   def apply[A: KeyTag: OptJsonWriter](
       name: String,
       description: String,
-      extend: Seq[AttributeKey[_]]
+      extend: Seq[AttributeKey[?]]
   ): AttributeKey[A] =
     apply(name, description, extend, Int.MaxValue)
 
   def apply[A: KeyTag: OptJsonWriter](
       name: String,
       description: String,
-      extend: Seq[AttributeKey[_]],
+      extend: Seq[AttributeKey[?]],
       rank: Int
   ): AttributeKey[A] =
     make(name, Some(description), extend, rank)
@@ -122,7 +122,7 @@ object AttributeKey {
   private def make[A: KeyTag: OptJsonWriter](
       name: String,
       description0: Option[String],
-      extend0: Seq[AttributeKey[_]],
+      extend0: Seq[AttributeKey[?]],
       rank0: Int
   ): AttributeKey[A] =
     new SharedAttributeKey[A]:
@@ -134,7 +134,7 @@ object AttributeKey {
       override def tag: KeyTag[A] = summon
       override val label: String = Util.hyphenToCamel(name)
       override def description: Option[String] = description0
-      override def extend: Seq[AttributeKey[_]] = extend0
+      override def extend: Seq[AttributeKey[?]] = extend0
       override def rank: Int = rank0
       override def optJsonWriter: OptJsonWriter[A] = summon
 
@@ -143,7 +143,7 @@ object AttributeKey {
       override def tag: KeyTag[A] = summon
       override def label: String = LocalLabel
       override def description: Option[String] = None
-      override def extend: Seq[AttributeKey[_]] = Nil
+      override def extend: Seq[AttributeKey[?]] = Nil
       override def toString = label
       override def isLocal: Boolean = true
       override def rank: Int = Int.MaxValue
@@ -194,13 +194,13 @@ trait AttributeMap {
    * All keys with defined mappings. There may be multiple keys with the same `label`, but different
    * types.
    */
-  def keys: Iterable[AttributeKey[_]]
+  def keys: Iterable[AttributeKey[?]]
 
   /**
    * Adds the mappings in `o` to this map, with mappings in `o` taking precedence over existing
    * mappings.
    */
-  def ++(o: Iterable[AttributeEntry[_]]): AttributeMap
+  def ++(o: Iterable[AttributeEntry[?]]): AttributeMap
 
   /**
    * Combines the mappings in `o` with the mappings in this map, with mappings in `o` taking
@@ -212,7 +212,7 @@ trait AttributeMap {
    * All mappings in this map. The [[AttributeEntry]] type preserves the typesafety of mappings,
    * although the specific types are unknown.
    */
-  def entries: Iterable[AttributeEntry[_]]
+  def entries: Iterable[AttributeEntry[?]]
 
   /** `true` if there are no mappings in this map, `false` if there are. */
   def isEmpty: Boolean
@@ -230,16 +230,16 @@ object AttributeMap {
   val empty: AttributeMap = new BasicAttributeMap(Map.empty)
 
   /** Constructs an [[AttributeMap]] containing the given `entries`. */
-  def apply(entries: Iterable[AttributeEntry[_]]): AttributeMap = empty ++ entries
+  def apply(entries: Iterable[AttributeEntry[?]]): AttributeMap = empty ++ entries
 
   /** Constructs an [[AttributeMap]] containing the given `entries`. */
-  def apply(entries: AttributeEntry[_]*): AttributeMap = empty ++ entries
+  def apply(entries: AttributeEntry[?]*): AttributeMap = empty ++ entries
 
   /** Presents an `AttributeMap` as a natural transformation. */
   // implicit def toNatTrans(map: AttributeMap): AttributeKey ~> Id = λ[AttributeKey ~> Id](map(_))
 }
 
-private class BasicAttributeMap(private val backing: Map[AttributeKey[_], Any])
+private class BasicAttributeMap(private val backing: Map[AttributeKey[?], Any])
     extends AttributeMap {
 
   def isEmpty: Boolean = backing.isEmpty
@@ -251,18 +251,18 @@ private class BasicAttributeMap(private val backing: Map[AttributeKey[_], Any])
   def put[T](k: AttributeKey[T], value: T): AttributeMap =
     new BasicAttributeMap(backing.updated(k, value: Any))
 
-  def keys: Iterable[AttributeKey[_]] = backing.keys
+  def keys: Iterable[AttributeKey[?]] = backing.keys
 
-  def ++(o: Iterable[AttributeEntry[_]]): AttributeMap =
+  def ++(o: Iterable[AttributeEntry[?]]): AttributeMap =
     new BasicAttributeMap(o.foldLeft(backing)((b, e) => b.updated(e.key, e.value: Any)))
 
   def ++(o: AttributeMap): AttributeMap = o match {
     case bam: BasicAttributeMap =>
-      new BasicAttributeMap(Map(backing.toSeq ++ bam.backing.toSeq: _*))
+      new BasicAttributeMap(Map(backing.toSeq ++ bam.backing.toSeq*))
     case _ => o ++ this
   }
 
-  def entries: Iterable[AttributeEntry[_]] =
+  def entries: Iterable[AttributeEntry[?]] =
     backing.collect { case (k: AttributeKey[kt], v) =>
       AttributeEntry(k, v.asInstanceOf[kt])
     }
@@ -317,7 +317,7 @@ object Attributed:
         (entry._1.toString, entry._2),
     (entries: Seq[(String, String)]) =>
       Map((entries.map: entry =>
-        (StringAttributeKey(entry._1), entry._2)): _*),
+        (StringAttributeKey(entry._1), entry._2))*),
   )
 
   given [A1: ClassTag: JsonFormat]

@@ -23,7 +23,7 @@ import scala.reflect.ClassTag
 /** An abstraction on top of Settings for build configuration and task definition. */
 sealed trait Scoped extends Equals:
   def scope: Scope
-  val key: AttributeKey[_]
+  val key: AttributeKey[?]
 
   override def equals(that: Any): Boolean =
     (this eq that.asInstanceOf[AnyRef]) || (that match {
@@ -68,7 +68,7 @@ sealed abstract class SettingKey[A1]
 
   override def toString: String = s"SettingKey($scope / $key)"
 
-  final def toTask: Initialize[Task[A1]] = this apply inlineTask
+  final def toTask: Initialize[Task[A1]] = this.apply(inlineTask)
 
   final def scopedKey: ScopedKey[A1] = ScopedKey(scope, key)
 
@@ -130,7 +130,7 @@ sealed abstract class SettingKey[A1]
   final def withRank(rank: Int): SettingKey[A1] =
     SettingKey(AttributeKey.copyWithRank(key, rank))
 
-  def canEqual(that: Any): Boolean = that.isInstanceOf[SettingKey[_]]
+  def canEqual(that: Any): Boolean = that.isInstanceOf[SettingKey[?]]
 end SettingKey
 
 /**
@@ -214,7 +214,7 @@ sealed abstract class TaskKey[A1]
   final def withRank(rank: Int): TaskKey[A1] =
     TaskKey(AttributeKey.copyWithRank(key, rank))
 
-  def canEqual(that: Any): Boolean = that.isInstanceOf[TaskKey[_]]
+  def canEqual(that: Any): Boolean = that.isInstanceOf[TaskKey[?]]
 end TaskKey
 
 /**
@@ -251,12 +251,12 @@ sealed trait InputKey[A1]
   final inline def ~=(f: A1 => A1): Setting[InputTask[A1]] = transform(f)
 
   final inline def transform(f: A1 => A1): Setting[InputTask[A1]] =
-    set(scopedKey(_ mapTask { _ map f }))
+    set(scopedKey(_ mapTask { _.map(f) }))
 
   final def withRank(rank: Int): InputKey[A1] =
     InputKey(AttributeKey.copyWithRank(key, rank))
 
-  def canEqual(that: Any): Boolean = that.isInstanceOf[InputKey[_]]
+  def canEqual(that: Any): Boolean = that.isInstanceOf[InputKey[?]]
 end InputKey
 
 /** Methods and types related to constructing settings, including keys, scopes, and initializations. */
@@ -361,8 +361,8 @@ object Scoped:
       def doFinally(t: Task[Unit]): Initialize[Task[A1]] = onTask(_.doFinally(t))
       def ||[T >: A1](alt: Task[T]): Initialize[Task[T]] = onTask(_ || alt)
       def &&[T](alt: Task[T]): Initialize[Task[T]] = onTask(_ && alt)
-      def tag(tags: Tag*): Initialize[Task[A1]] = onTask(_.tag(tags: _*))
-      def tagw(tags: (Tag, Int)*): Initialize[Task[A1]] = onTask(_.tagw(tags: _*))
+      def tag(tags: Tag*): Initialize[Task[A1]] = onTask(_.tag(tags*))
+      def tagw(tags: (Tag, Int)*): Initialize[Task[A1]] = onTask(_.tagw(tags*))
 
       // Task-specific extensions
       def dependsOn(tasks: Initialize[? <: Task[?]]*): Initialize[Task[A1]] =
@@ -372,7 +372,7 @@ object Scoped:
       def dependsOnSeq(tasks: Seq[AnyInitTask]): Initialize[Task[A1]] =
         init.zipWith(
           Initialize.joinAny[Task](coerceToAnyTaskSeq(tasks))
-        )((thisTask, deps) => thisTask.dependsOn(deps: _*))
+        )((thisTask, deps) => thisTask.dependsOn(deps*))
       def failure: Initialize[Task[Incomplete]] = init(_.failure)
       def result: Initialize[Task[Result[A1]]] = init(_.result)
       def triggeredBy[A2](tasks: Initialize[Task[A2]]*): Initialize[Task[A1]] =
@@ -381,7 +381,7 @@ object Scoped:
         nonLocal(tasks.toSeq.asInstanceOf[Seq[AnyInitTask]], Def.runBefore)
       private def nonLocal(
           tasks: Seq[AnyInitTask],
-          key: AttributeKey[Seq[Task[_]]]
+          key: AttributeKey[Seq[Task[?]]]
       ): Initialize[Task[A1]] =
         Initialize
           .joinAny[Task](coerceToAnyTaskSeq(tasks))
@@ -390,26 +390,26 @@ object Scoped:
     extension [A1](init: Initialize[InputTask[A1]])
       @targetName("onTaskInitializeInputTask")
       protected def onTask[T](f: Task[A1] => Task[T]): Initialize[InputTask[T]] =
-        init(_ mapTask f)
+        init(_.mapTask(f))
 
       @targetName("flatMapTaskValueInitializeInputTask")
       def flatMapTaskValue[T](f: A1 => Task[T]): Initialize[InputTask[T]] =
-        onTask(_.result flatMap (f compose successM))
+        onTask(_.result.flatMap(f compose successM))
       @targetName("mapInitializeInputTask")
       def map[A2](f: A1 => A2): Initialize[InputTask[A2]] =
-        onTask(_.result map (f compose successM))
+        onTask(_.result.map(f compose successM))
       @targetName("andFinallyInitializeInputTask")
-      def andFinally(fin: => Unit): Initialize[InputTask[A1]] = onTask(_ andFinally fin)
+      def andFinally(fin: => Unit): Initialize[InputTask[A1]] = onTask(_.andFinally(fin))
       @targetName("doFinallyInitializeInputTask")
-      def doFinally(t: Task[Unit]): Initialize[InputTask[A1]] = onTask(_ doFinally t)
+      def doFinally(t: Task[Unit]): Initialize[InputTask[A1]] = onTask(_.doFinally(t))
       @targetName("||_InitializeInputTask")
       def ||[T >: A1](alt: Task[T]): Initialize[InputTask[T]] = onTask(_ || alt)
       @targetName("&&_InitializeInputTask")
       def &&[T](alt: Task[T]): Initialize[InputTask[T]] = onTask(_ && alt)
       @targetName("tagInitializeInputTask")
-      def tag(tags: Tag*): Initialize[InputTask[A1]] = onTask(_.tag(tags: _*))
+      def tag(tags: Tag*): Initialize[InputTask[A1]] = onTask(_.tag(tags*))
       @targetName("tagwInitializeInputTask")
-      def tagw(tags: (Tag, Int)*): Initialize[InputTask[A1]] = onTask(_.tagw(tags: _*))
+      def tagw(tags: (Tag, Int)*): Initialize[InputTask[A1]] = onTask(_.tagw(tags*))
 
       // InputTask specific extensions
       @targetName("dependsOnInitializeInputTask")
@@ -423,7 +423,7 @@ object Scoped:
       @targetName("dependsOnSeqInitializeInputTask")
       def dependsOnSeq(tasks: Seq[AnyInitTask]): Initialize[InputTask[A1]] =
         init.zipWith(Initialize.joinAny[Task](coerceToAnyTaskSeq(tasks)))((thisTask, deps) =>
-          thisTask.mapTask(_.dependsOn(deps: _*))
+          thisTask.mapTask(_.dependsOn(deps*))
         )
   end Syntax
 
@@ -456,7 +456,7 @@ object Scoped:
 
     inline def ~=(inline f: A1 => A1): Setting[Task[A1]] = transform(f)
 
-    inline def transform(f: A1 => A1): Setting[Task[A1]] = set(scopedKey(_ map f))
+    inline def transform(f: A1 => A1): Setting[Task[A1]] = set(scopedKey(_.map(f)))
 
     def toSettingKey: SettingKey[Task[A1]] = scopedSetting(scope, key)
 
@@ -494,7 +494,7 @@ object Scoped:
   private def coerceToAnyTaskSeq(tasks: Seq[AnyInitTask]): Seq[Def.Initialize[Task[Any]]] =
     tasks.asInstanceOf[Seq[Def.Initialize[Task[Any]]]]
 
-  type AnyInitTask = Initialize[Task[_]]
+  type AnyInitTask = Initialize[Task[?]]
 
   implicit def richTaskSeq[T](in: Seq[Initialize[Task[T]]]): RichTaskSeq[T] = new RichTaskSeq(in)
   final class RichTaskSeq[T](keys: Seq[Initialize[Task[T]]]) {
@@ -507,7 +507,7 @@ object Scoped:
     def dependOn: Initialize[Task[Unit]] =
       Initialize
         .joinAny[Task](coerceToAnyTaskSeq(keys))
-        .apply(deps => nop.dependsOn(deps: _*))
+        .apply(deps => nop.dependsOn(deps*))
   }
 
   sealed abstract class RichTaskables[Tup <: Tuple](final val keys: Tuple.Map[Tup, Taskable]):
@@ -672,7 +672,7 @@ object Scoped:
 
   // format: on
 
-  private[sbt] def extendScoped(s1: Scoped, ss: Seq[Scoped]): Seq[AttributeKey[_]] =
+  private[sbt] def extendScoped(s1: Scoped, ss: Seq[Scoped]): Seq[AttributeKey[?]] =
     s1.key +: ss.map(_.key)
 end Scoped
 
@@ -744,7 +744,7 @@ object InputKey:
       description: String,
       extend1: Scoped,
       extendN: Scoped*
-  ): InputKey[A1] = apply(label, description, KeyRanks.DefaultInputRank, extend1, extendN: _*)
+  ): InputKey[A1] = apply(label, description, KeyRanks.DefaultInputRank, extend1, extendN*)
 
   def apply[A1: ClassTag](
       label: String,

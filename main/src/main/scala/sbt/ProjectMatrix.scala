@@ -38,7 +38,7 @@ sealed trait ProjectMatrix extends CompositeProject {
   def withId(id: String): ProjectMatrix
 
   /** Sets the base directory for this project matrix. */
-  def in(dir: File): ProjectMatrix
+  infix def in(dir: File): ProjectMatrix
 
   /** Adds new configurations directly to this project.  To override an existing configuration, use `overrideConfigs`. */
   def configs(cs: Configuration*): ProjectMatrix
@@ -107,22 +107,22 @@ sealed trait ProjectMatrix extends CompositeProject {
   def customRow(
       scalaVersions: Seq[String],
       axisValues: Seq[VirtualAxis],
-      settings: Seq[Def.Setting[_]]
+      settings: Seq[Def.Setting[?]]
   ): ProjectMatrix
 
   def customRow(
       autoScalaLibrary: Boolean,
       axisValues: Seq[VirtualAxis],
-      settings: Seq[Def.Setting[_]]
+      settings: Seq[Def.Setting[?]]
   ): ProjectMatrix
 
   def jvmPlatform(scalaVersions: Seq[String]): ProjectMatrix
   def jvmPlatform(autoScalaLibrary: Boolean): ProjectMatrix
-  def jvmPlatform(scalaVersions: Seq[String], settings: Seq[Def.Setting[_]]): ProjectMatrix
+  def jvmPlatform(scalaVersions: Seq[String], settings: Seq[Def.Setting[?]]): ProjectMatrix
   def jvmPlatform(
       scalaVersions: Seq[String],
       axisValues: Seq[VirtualAxis],
-      settings: Seq[Def.Setting[_]]
+      settings: Seq[Def.Setting[?]]
   ): ProjectMatrix
   def jvmPlatform(
       scalaVersions: Seq[String],
@@ -132,16 +132,16 @@ sealed trait ProjectMatrix extends CompositeProject {
   def jvmPlatform(
       autoScalaLibrary: Boolean,
       scalaVersions: Seq[String],
-      settings: Seq[Def.Setting[_]]
+      settings: Seq[Def.Setting[?]]
   ): ProjectMatrix
   def jvm: ProjectFinder
 
   def jsPlatform(scalaVersions: Seq[String]): ProjectMatrix
-  def jsPlatform(scalaVersions: Seq[String], settings: Seq[Def.Setting[_]]): ProjectMatrix
+  def jsPlatform(scalaVersions: Seq[String], settings: Seq[Def.Setting[?]]): ProjectMatrix
   def jsPlatform(
       scalaVersions: Seq[String],
       axisValues: Seq[VirtualAxis],
-      settings: Seq[Def.Setting[_]]
+      settings: Seq[Def.Setting[?]]
   ): ProjectMatrix
   def jsPlatform(
       scalaVersions: Seq[String],
@@ -151,11 +151,11 @@ sealed trait ProjectMatrix extends CompositeProject {
   def js: ProjectFinder
 
   def nativePlatform(scalaVersions: Seq[String]): ProjectMatrix
-  def nativePlatform(scalaVersions: Seq[String], settings: Seq[Def.Setting[_]]): ProjectMatrix
+  def nativePlatform(scalaVersions: Seq[String], settings: Seq[Def.Setting[?]]): ProjectMatrix
   def nativePlatform(
       scalaVersions: Seq[String],
       axisValues: Seq[VirtualAxis],
-      settings: Seq[Def.Setting[_]]
+      settings: Seq[Def.Setting[?]]
   ): ProjectMatrix
   def nativePlatform(
       scalaVersions: Seq[String],
@@ -248,7 +248,7 @@ object ProjectMatrix {
       val nonMatrixAggregate: Seq[ProjectReference],
       val dependencies: Seq[MatrixClasspathDep[ProjectMatrixReference]],
       val nonMatrixDependencies: Seq[ClasspathDep[ProjectReference]],
-      val settings: Seq[Def.Setting[_]],
+      val settings: Seq[Def.Setting[?]],
       val configurations: Seq[Configuration],
       val plugins: Plugins,
       val transforms: Seq[Project => Project],
@@ -266,7 +266,7 @@ object ProjectMatrix {
         val idSuffix = axes.map(_.idSuffix).mkString("")
         val childId = self.id + idSuffix
         r -> childId
-      }): _*)
+      })*)
     }
 
     private def isSortOfDefaultAxis(a: VirtualAxis): Boolean =
@@ -299,10 +299,10 @@ object ProjectMatrix {
           val dotSbtMatrix = new java.io.File(".sbt") / "matrix"
           IO.createDirectory(dotSbtMatrix)
           val p = Project(childId, dotSbtMatrix / childId)
-            .dependsOn(deps: _*)
-            .aggregate(aggs: _*)
+            .dependsOn(deps*)
+            .aggregate(aggs*)
             .setPlugins(plugins)
-            .configs(configurations: _*)
+            .configs(configurations*)
             .settings(
               name := self.id
             )
@@ -329,7 +329,7 @@ object ProjectMatrix {
               projectMatrixBaseDirectory := base,
             )
             .settings(self.settings)
-            .configure(transforms: _*)
+            .configure(transforms*)
 
           r -> r.process(p)
         }
@@ -388,7 +388,7 @@ object ProjectMatrix {
         case _       => sys.error(s"no rows were found in $id matching $thatRow: $rows")
       }
 
-    private def makeSources(dirSuffix: String, svDirSuffix: String): Def.Setting[_] = {
+    private def makeSources(dirSuffix: String, svDirSuffix: String): Def.Setting[?] = {
       unmanagedSourceDirectories ++= Seq(
         scalaSource.value.getParentFile / s"scala${dirSuffix}",
         scalaSource.value.getParentFile / s"scala$svDirSuffix",
@@ -398,7 +398,7 @@ object ProjectMatrix {
 
     override def withId(id: String): ProjectMatrix = copy(id = id)
 
-    override def in(dir: File): ProjectMatrix = copy(base = dir)
+    override infix def in(dir: File): ProjectMatrix = copy(base = dir)
 
     override def configs(cs: Configuration*): ProjectMatrix =
       copy(configurations = configurations ++ cs)
@@ -421,7 +421,7 @@ object ProjectMatrix {
 
     /** Appends settings to the current settings sequence for this project. */
     override def settings(ss: Def.SettingsDefinition*): ProjectMatrix =
-      copy(settings = (settings: Seq[Def.Setting[_]]) ++ Def.settings(ss: _*))
+      copy(settings = (settings: Seq[Def.Setting[?]]) ++ Def.settings(ss*))
 
     override def enablePlugins(ns: Plugins*): ProjectMatrix =
       setPlugins(ns.foldLeft(plugins)(Plugins.and))
@@ -440,20 +440,20 @@ object ProjectMatrix {
       jvmPlatform(autoScalaLibrary, Nil, Nil)
     override def jvmPlatform(
         scalaVersions: Seq[String],
-        settings: Seq[Def.Setting[_]]
+        settings: Seq[Def.Setting[?]]
     ): ProjectMatrix =
       jvmPlatform(true, scalaVersions, settings)
     override def jvmPlatform(
         autoScalaLibrary: Boolean,
         scalaVersions: Seq[String],
-        settings: Seq[Def.Setting[_]]
+        settings: Seq[Def.Setting[?]]
     ): ProjectMatrix =
       customRow(autoScalaLibrary, scalaVersions, Seq(VirtualAxis.jvm), { _.settings(settings) })
 
     override def jvmPlatform(
         scalaVersions: Seq[String],
         axisValues: Seq[VirtualAxis],
-        settings: Seq[Def.Setting[_]]
+        settings: Seq[Def.Setting[?]]
     ): ProjectMatrix =
       customRow(true, scalaVersions, VirtualAxis.jvm +: axisValues, { _.settings(settings) })
 
@@ -482,7 +482,7 @@ object ProjectMatrix {
 
     override def jsPlatform(
         scalaVersions: Seq[String],
-        settings: Seq[Def.Setting[_]]
+        settings: Seq[Def.Setting[?]]
     ): ProjectMatrix =
       customRow(
         true,
@@ -494,7 +494,7 @@ object ProjectMatrix {
     override def jsPlatform(
         scalaVersions: Seq[String],
         axisValues: Seq[VirtualAxis],
-        settings: Seq[Def.Setting[_]]
+        settings: Seq[Def.Setting[?]]
     ): ProjectMatrix =
       customRow(
         true,
@@ -545,7 +545,7 @@ object ProjectMatrix {
 
     override def nativePlatform(
         scalaVersions: Seq[String],
-        settings: Seq[Def.Setting[_]]
+        settings: Seq[Def.Setting[?]]
     ): ProjectMatrix =
       customRow(
         true,
@@ -557,7 +557,7 @@ object ProjectMatrix {
     override def nativePlatform(
         scalaVersions: Seq[String],
         axisValues: Seq[VirtualAxis],
-        settings: Seq[Def.Setting[_]]
+        settings: Seq[Def.Setting[?]]
     ): ProjectMatrix =
       customRow(
         true,
@@ -615,13 +615,13 @@ object ProjectMatrix {
     override def customRow(
         scalaVersions: Seq[String],
         axisValues: Seq[VirtualAxis],
-        settings: Seq[Def.Setting[_]]
+        settings: Seq[Def.Setting[?]]
     ): ProjectMatrix = customRow(true, scalaVersions, axisValues, { _.settings(settings) })
 
     override def customRow(
         autoScalaLibrary: Boolean,
         axisValues: Seq[VirtualAxis],
-        settings: Seq[Def.Setting[_]]
+        settings: Seq[Def.Setting[?]]
     ): ProjectMatrix = customRow(autoScalaLibrary, Nil, axisValues, { _.settings(settings) })
 
     override def customRow(
@@ -674,7 +674,7 @@ object ProjectMatrix {
         nonMatrixAggregate: Seq[ProjectReference] = nonMatrixAggregate,
         dependencies: Seq[MatrixClasspathDep[ProjectMatrixReference]] = dependencies,
         nonMatrixDependencies: Seq[ClasspathDep[ProjectReference]] = nonMatrixDependencies,
-        settings: Seq[Def.Setting[_]] = settings,
+        settings: Seq[Def.Setting[?]] = settings,
         configurations: Seq[Configuration] = configurations,
         plugins: Plugins = plugins,
         transforms: Seq[Project => Project] = transforms,
@@ -734,7 +734,7 @@ object ProjectMatrix {
       nonMatrixAggregate: Seq[ProjectReference],
       dependencies: Seq[MatrixClasspathDep[ProjectMatrixReference]],
       nonMatrixDependencies: Seq[ClasspathDep[ProjectReference]],
-      settings: Seq[Def.Setting[_]],
+      settings: Seq[Def.Setting[?]],
       configurations: Seq[Configuration],
       plugins: Plugins,
       transforms: Seq[Project => Project],

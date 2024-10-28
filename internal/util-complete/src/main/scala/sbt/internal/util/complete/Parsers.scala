@@ -38,16 +38,19 @@ trait Parsers {
   lazy val DigitSet = Set("0", "1", "2", "3", "4", "5", "6", "7", "8", "9")
 
   /** Parses any single digit and provides that digit as a Char as the result. */
-  lazy val Digit = charClass(_.isDigit, "digit") examples DigitSet
+  lazy val Digit = charClass(_.isDigit, "digit").examples(DigitSet)
 
   /** Set containing Chars for hexadecimal digits 0-9 and A-F (but not a-f). */
   lazy val HexDigitSet =
     Set('0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F')
 
   /** Parses a single hexadecimal digit (0-9, a-f, A-F). */
-  lazy val HexDigit = charClass(c => HexDigitSet(c.toUpper), "hex digit") examples HexDigitSet.map(
-    _.toString
-  )
+  lazy val HexDigit =
+    charClass(c => HexDigitSet(c.toUpper), "hex digit").examples(
+      HexDigitSet.map(
+        _.toString
+      )
+    )
 
   /** Parses a single letter, according to Char.isLetter, into a Char. */
   lazy val Letter = charClass(_.isLetter, "letter")
@@ -322,14 +325,14 @@ trait Parsers {
    * Applies `rep` zero or more times, separated by `sep`. The result is the (possibly empty)
    * sequence of results from the multiple `rep` applications. The `sep` results are discarded.
    */
-  def repsep[T](rep: Parser[T], sep: Parser[_]): Parser[Seq[T]] =
+  def repsep[T](rep: Parser[T], sep: Parser[?]): Parser[Seq[T]] =
     rep1sep(rep, sep) ?? nilSeq[T]
 
   /**
    * Applies `rep` one or more times, separated by `sep`. The result is the non-empty sequence of
    * results from the multiple `rep` applications. The `sep` results are discarded.
    */
-  def rep1sep[T](rep: Parser[T], sep: Parser[_]): Parser[Seq[T]] =
+  def rep1sep[T](rep: Parser[T], sep: Parser[?]): Parser[Seq[T]] =
     (rep ~ (sep ~> rep).*).map { case (x ~ xs) => x +: xs }
 
   /** Wraps the result of `p` in `Some`. */
@@ -390,7 +393,7 @@ trait Parsers {
    * Parses a URI that is valid according to the single argument java.net.URI constructor, using
    * `ex` as tab completion examples.
    */
-  def Uri(ex: Set[URI]) = basicUri examples (ex.map(_.toString))
+  def Uri(ex: Set[URI]) = basicUri.examples(ex.map(_.toString))
 }
 
 /** Provides standard [[Parser]] implementations. */
@@ -400,7 +403,7 @@ object Parsers extends Parsers
 object DefaultParsers extends Parsers with ParserMain {
 
   /** Applies parser `p` to input `s` and returns `true` if the parse was successful. */
-  def matches(p: Parser[_], s: String): Boolean =
+  def matches(p: Parser[?], s: String): Boolean =
     apply(p)(s).resultEmpty.isValid
 
   /** Returns `true` if `s` parses successfully according to [[ID]]. */

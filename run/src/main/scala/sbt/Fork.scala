@@ -65,9 +65,9 @@ final class Fork(val commandName: String, val runnerClass: Option[String]) {
       if (Fork.shouldUseArgumentsFile(options))
         new JProcessBuilder(executable, Fork.createArgumentsFile(options))
       else
-        new JProcessBuilder(command.toArray: _*)
-    workingDirectory foreach (jpb directory _)
-    environment foreach { case (k, v) => jpb.environment.put(k, v) }
+        new JProcessBuilder(command.toArray*)
+    workingDirectory.foreach(jpb.directory(_))
+    environment.foreach { case (k, v) => jpb.environment.put(k, v) }
     if (connectInput) {
       jpb.redirectInput(Redirect.INHERIT)
       ()

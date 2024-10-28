@@ -133,7 +133,7 @@ object Resolvers {
 
   private object IBiblioRepository {
 
-    private def stringVector(v: java.util.List[_]): Vector[String] =
+    private def stringVector(v: java.util.List[?]): Vector[String] =
       Option(v).map(_.asScala.toVector).getOrElse(Vector.empty).collect { case s: String =>
         s
       }

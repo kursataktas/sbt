@@ -15,7 +15,7 @@ import java.net.URL
 
 final class FilteredLoader(parent: ClassLoader) extends ClassLoader(parent) {
   @throws(classOf[ClassNotFoundException])
-  override final def loadClass(className: String, resolve: Boolean): Class[_] = {
+  override final def loadClass(className: String, resolve: Boolean): Class[?] = {
     if (className.startsWith("java.") || className.startsWith("javax."))
       super.loadClass(className, resolve)
     else

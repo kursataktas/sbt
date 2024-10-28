@@ -96,7 +96,7 @@ private[sbt] final class Execute(
 
     addNew(root)
     processAll()
-    assert(results contains root, "No result for root node.")
+    assert(results.contains(root), "No result for root node.")
     val finalResults = triggers.onComplete(results)
     progress.afterAllCompleted(finalResults)
     progress.stop()
@@ -155,7 +155,7 @@ private[sbt] final class Execute(
       if (done(target)) assert(done(node))
       else {
         assert(calling(node))
-        assert(callers(target) contains node)
+        assert(callers(target).contains(node))
       }
       readyInv(node)
     }
@@ -391,11 +391,11 @@ private[sbt] final class Execute(
   def cycleCheck(node: TaskId[?], target: TaskId[?]): Unit = {
     if (node eq target) cyclic(node, target, "Cannot call self")
     val all = IDSet.create[TaskId[?]]
-    def allCallers(n: TaskId[?]): Unit = (all process n)(()) {
+    def allCallers(n: TaskId[?]): Unit = all.process(n)(()) {
       callers.get(n).toList.flatten.foreach(allCallers)
     }
     allCallers(node)
-    if (all contains target) cyclic(node, target, "Cyclic reference")
+    if all.contains(target) then cyclic(node, target, "Cyclic reference")
   }
   def cyclic(caller: TaskId[?], target: TaskId[?], msg: String) =
     throw new Incomplete(

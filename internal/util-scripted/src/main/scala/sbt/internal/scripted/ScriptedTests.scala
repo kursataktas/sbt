@@ -144,7 +144,7 @@ final class ScriptedTests(
       // // val sbtHandler = new SbtHandler(testDirectory, launcher, buffered, launchOpts)
       // new TestScriptParser(Map('$' -> fileHandler, /* '>' -> sbtHandler, */ '#' -> CommentHandler))
       val scriptConfig = new ScriptConfig(label, testDirectory, log)
-      new TestScriptParser(handlersProvider getHandlers scriptConfig)
+      new TestScriptParser(handlersProvider.getHandlers(scriptConfig))
     }
     val (file, pending) = {
       val normal = new File(testDirectory, ScriptFilename)
@@ -224,7 +224,7 @@ final class ListTests(baseDirectory: File, accept: ScriptedTest => Boolean, log:
         log.warn("Tests skipped in group " + group.getName + ":")
         skipped.foreach(testName => log.warn(" " + testName.getName))
       }
-      Seq(included.map(_.getName): _*)
+      Seq(included.map(_.getName)*)
     }
   }
 }

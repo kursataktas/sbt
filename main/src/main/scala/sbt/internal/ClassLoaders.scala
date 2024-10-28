@@ -232,7 +232,7 @@ private[sbt] object ClassLoaders {
         // layer 3
         val filteredSet =
           if (layerDependencies) allDependencies.toSet ++ si.libraryJars ++ scalaReflectJar
-          else Set(si.libraryJars ++ scalaReflectJar: _*)
+          else Set(si.libraryJars ++ scalaReflectJar*)
         val dynamicClasspath = cpFiles.filterNot(f => filteredSet(f) || scalaJarNames(f.getName))
         dependencyLayer match {
           case dl: ReverseLookupClassLoaderHolder =>

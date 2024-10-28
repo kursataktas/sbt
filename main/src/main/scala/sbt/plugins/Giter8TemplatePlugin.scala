@@ -20,7 +20,7 @@ object Giter8TemplatePlugin extends AutoPlugin {
   override def requires = CorePlugin
   override def trigger = allRequirements
 
-  override lazy val globalSettings: Seq[Setting[_]] =
+  override lazy val globalSettings: Seq[Setting[?]] =
     Seq(
       templateResolverInfos +=
         TemplateResolverInfo(
@@ -28,7 +28,7 @@ object Giter8TemplatePlugin extends AutoPlugin {
             "org.scala-sbt.sbt-giter8-resolver",
             "sbt-giter8-resolver",
             "0.16.2"
-          ) cross CrossVersion.binary,
+          ).cross(CrossVersion.binary),
           "sbtgiter8resolver.Giter8TemplateResolver"
         )
     )

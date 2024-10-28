@@ -9,7 +9,6 @@
 package sbt
 package internal
 
-import sbt.internal.util.Attributed
 import sbt.util.{ Level, Logger }
 
 import sbt.librarymanagement.{
@@ -30,6 +29,7 @@ import sbt.ProjectExtra.{ extract, setProject }
 import sbt.SlashSyntax0.given
 
 import sbt.io.IO
+import xsbti.HashedVirtualFileRef
 
 object IvyConsole {
   final val Name = "ivy-console"
@@ -49,13 +49,13 @@ object IvyConsole {
       val extracted = Project.extract(session, structure)
       import extracted._
 
-      val depSettings: Seq[Setting[_]] = Seq(
+      val depSettings: Seq[Setting[?]] = Seq(
         libraryDependencies ++= managed.reverse,
         resolvers ++= repos.reverse.toVector,
         Compile / unmanagedJars ++= {
           val converter = fileConverter.value
           val u = unmanaged.reverse.map(_.toPath).map(converter.toVirtualFile)
-          Attributed.blankSeq(u)
+          u: Seq[HashedVirtualFileRef]
         },
         Global / logLevel := Level.Warn,
         Global / showSuccess := false
@@ -81,9 +81,9 @@ object IvyConsole {
     args.foldLeft(Dependencies(Nil, Nil, Nil))(parseArgument(log))
   def parseArgument(log: Logger)(acc: Dependencies, arg: String): Dependencies =
     arg match {
-      case _ if arg contains " at " => acc.copy(resolvers = parseResolver(arg) +: acc.resolvers)
-      case _ if arg endsWith ".jar" => acc.copy(unmanaged = new File(arg) +: acc.unmanaged)
-      case _                        => acc.copy(managed = parseManaged(arg, log) ++ acc.managed)
+      case _ if arg.contains(" at ") => acc.copy(resolvers = parseResolver(arg) +: acc.resolvers)
+      case _ if arg.endsWith(".jar") => acc.copy(unmanaged = new File(arg) +: acc.unmanaged)
+      case _                         => acc.copy(managed = parseManaged(arg, log) ++ acc.managed)
     }
 
   private def parseResolver(arg: String): MavenRepository = {

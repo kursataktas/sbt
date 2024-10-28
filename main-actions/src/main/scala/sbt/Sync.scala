@@ -81,13 +81,13 @@ object Sync {
           !target.exists ||
           target.isDirectory != source.isDirectory
 
-      val updates = relation filter outofdate
+      val updates = relation.filter(outofdate)
 
       val (cleanDirs, cleanFiles) = (updates._2s ++ removeTargets).partition(_.isDirectory)
 
       IO.delete(cleanFiles)
       IO.deleteIfEmpty(cleanDirs)
-      updates.all.foreach((copy _).tupled)
+      updates.all.foreach((copy).tupled)
 
       writeInfoVirtual(store, relation, currentInfo, fileConverter)(inStyle.format)
       relation

@@ -21,7 +21,7 @@ object Transform:
 
   def fromDummyStrict[T](original: Task[T], value: T): Task[T] = fromDummy(original)(value)
 
-  final case class DummyTaskMap(mappings: List[TaskAndValue[_]]) {
+  final case class DummyTaskMap(mappings: List[TaskAndValue[?]]) {
     def ::[T](tav: (Task[T], T)): DummyTaskMap =
       DummyTaskMap(new TaskAndValue(tav._1, tav._2) :: mappings)
   }

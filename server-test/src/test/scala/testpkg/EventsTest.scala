@@ -21,7 +21,7 @@ class EventsTest extends AbstractServerTest {
       s"""{ "jsonrpc": "2.0", "id": $id, "method": "sbt/exec", "params": { "commandLine": "hello" } }"""
     )
     assert(svr.waitForString(10.seconds) { s =>
-      (s contains s""""id":$id""") && (s contains """"error":""")
+      s.contains(s""""id":$id""") && s.contains(""""error":""")
     })
   }
 
@@ -37,7 +37,7 @@ class EventsTest extends AbstractServerTest {
       s"""{ "jsonrpc": "2.0", "id":$cancelID, "method": "sbt/cancelRequest", "params": { "id": "$invalidID" } }"""
     )
     assert(svr.waitForString(20.seconds) { s =>
-      (s contains """"error":{"code":-32800""")
+      s.contains(""""error":{"code":-32800""")
     })
   }
 

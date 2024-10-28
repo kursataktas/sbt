@@ -361,7 +361,7 @@ class NetworkClient(
           else Nil
 
         val processBuilder =
-          new ProcessBuilder((nohup ++ cmd): _*)
+          new ProcessBuilder((nohup ++ cmd)*)
             .directory(arguments.baseDirectory)
             .redirectInput(Redirect.PIPE)
         processBuilder.environment.put(Terminal.TERMINAL_PROPS, props)

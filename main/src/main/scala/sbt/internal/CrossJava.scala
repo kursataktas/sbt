@@ -142,7 +142,7 @@ private[sbt] object CrossJava {
       val version: Parser[SwitchTarget] =
         (token(
           (StringBasic <~ "@").? ~ ((NatBasic) ~ ("." ~> NatBasic).*)
-            .examples(knownVersions: _*) ~ "!".?
+            .examples(knownVersions*) ~ "!".?
         ) || token(StringBasic))
           .map {
             case Left(((vendor, (v1, vs)), bang)) =>
@@ -171,7 +171,7 @@ private[sbt] object CrossJava {
       proj: ResolvedReference
   ): Map[String, File] = {
     import extracted._
-    ((proj / Keys.fullJavaHomes) get structure.data).get
+    (proj / Keys.fullJavaHomes).get(structure.data).get
   }
 
   private def getJavaHomesTyped(
@@ -187,14 +187,14 @@ private[sbt] object CrossJava {
   ): Seq[String] = {
     import extracted._
     import Keys._
-    ((proj / crossJavaVersions) get structure.data).getOrElse(Nil)
+    (proj / crossJavaVersions).get(structure.data).getOrElse(Nil)
   }
 
   private def getCrossJavaHomes(extracted: Extracted, proj: ResolvedReference): Seq[File] = {
     import extracted._
     import Keys._
-    val fjh = ((proj / fullJavaHomes) get structure.data).get
-    ((proj / crossJavaVersions) get structure.data) map { jvs =>
+    val fjh = (proj / fullJavaHomes).get(structure.data).get
+    (proj / crossJavaVersions).get(structure.data) map { jvs =>
       jvs map { jv =>
         lookupJavaHome(jv, fjh)
       }
@@ -239,7 +239,7 @@ private[sbt] object CrossJava {
         )
       }
 
-      val filterKeys: Set[AttributeKey[_]] = Set(javaHome).map(_.key)
+      val filterKeys: Set[AttributeKey[?]] = Set(javaHome).map(_.key)
 
       val projectsContains: Reference => Boolean = projects.map(_._1).toSet[Reference].contains(_)
 
@@ -350,21 +350,21 @@ private[sbt] object CrossJava {
     }
   }
 
-  private val JavaCapturedSession = AttributeKey[Seq[Setting[_]]]("javaCrossCapturedSession")
+  private val JavaCapturedSession = AttributeKey[Seq[Setting[?]]]("javaCrossCapturedSession")
 
   private def captureCurrentSession(state: State, extracted: Extracted): State = {
     state.put(JavaCapturedSession, extracted.session.rawAppend)
   }
 
   def discoverJavaHomes: ListMap[String, File] = {
-    ListMap(JavaDiscoverConfig.configs flatMap { _.javaHomes } sortWith (versionOrder): _*)
+    ListMap(JavaDiscoverConfig.configs flatMap { _.javaHomes } sortWith (versionOrder)*)
   }
 
   sealed trait JavaDiscoverConf {
     def javaHomes: Vector[(String, File)]
   }
 
-  def versionOrder(left: (_, File), right: (_, File)): Boolean =
+  def versionOrder(left: (?, File), right: (?, File)): Boolean =
     versionOrder(left._2.getName, right._2.getName)
 
   // Sort version strings, considering 1.8.0 < 1.8.0_45 < 1.8.0_212

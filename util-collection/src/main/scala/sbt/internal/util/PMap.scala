@@ -15,7 +15,7 @@ trait RMap[K[_], V[_]] {
   def contains[T](k: K[T]): Boolean
   def toSeq: Seq[(K[Any], V[Any])]
 
-  def toTypedSeq: Seq[TPair[_]] = toSeq.map { case (k: K[t], v) =>
+  def toTypedSeq: Seq[TPair[?]] = toSeq.map { case (k: K[t], v) =>
     TPair[t](k, v.asInstanceOf[V[t]])
   }
 
@@ -72,12 +72,12 @@ object IMap {
     def remove[T](k: K[T]) = new IMap0[K, V](backing - k.asInstanceOf)
 
     def mapValue[T](k: K[T], init: V[T], f: V[T] => V[T]) =
-      put(k, f(this get k getOrElse init))
+      put(k, f(this.get(k).getOrElse(init)))
 
     def mapValues[V2[_]](f: [A] => V[A] => V2[A]) =
       new IMap0[K, V2](Map(backing.iterator.map { case (k, v) =>
         k -> f(v.asInstanceOf[V[Any]])
-      }.toArray: _*))
+      }.toArray*))
 
     def toSeq = backing.toSeq.asInstanceOf[Seq[(K[Any], V[Any])]]
     def keys = backing.keys.asInstanceOf[Iterable[K[Any]]]
@@ -107,7 +107,7 @@ class DelegatingPMap[K[_], V[_]](backing: mutable.Map[K[Any], V[Any]])
     cast[T](backing.getOrElseUpdate(k.asInstanceOf, make.asInstanceOf))
 
   def mapValue[T](k: K[T], init: V[T], f: V[T] => V[T]): V[T] = {
-    val v = f(this get k getOrElse init)
+    val v = f(this.get(k).getOrElse(init))
     update(k, v)
     v
   }

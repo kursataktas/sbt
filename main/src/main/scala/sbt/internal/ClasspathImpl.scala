@@ -418,7 +418,7 @@ private[sbt] object ClasspathImpl {
     a => maps.foldLeft(Seq[B]()) { _ ++ _(a) }.distinct
 
   def parseList(s: String, allConfs: Seq[String]): Seq[String] =
-    (trim(s split ",") flatMap replaceWildcard(allConfs)).distinct
+    trim(s.split(",")).flatMap(replaceWildcard(allConfs)).distinct
 
   def replaceWildcard(allConfs: Seq[String])(conf: String): Seq[String] = conf match {
     case ""  => Nil

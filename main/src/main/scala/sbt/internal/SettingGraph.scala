@@ -18,13 +18,13 @@ import sbt.ProjectExtra.scopedKeyData
 import sbt.io.IO
 
 object SettingGraph {
-  def apply(structure: BuildStructure, basedir: File, scoped: ScopedKey[_], generation: Int)(using
-      display: Show[ScopedKey[_]]
+  def apply(structure: BuildStructure, basedir: File, scoped: ScopedKey[?], generation: Int)(using
+      display: Show[ScopedKey[?]]
   ): SettingGraph = {
     val cMap = flattenLocals(
       compiled(structure.settings, false)(using structure.delegates, structure.scopeLocal, display)
     )
-    def loop(scoped: ScopedKey[_], generation: Int): SettingGraph = {
+    def loop(scoped: ScopedKey[?], generation: Int): SettingGraph = {
       val key = scoped.key
       val scope = scoped.scope
       val definedIn = structure.data.definingScope(scope, key) map { sc =>
@@ -42,7 +42,7 @@ object SettingGraph {
         Project.scopedKeyData(structure, scope, key),
         key.description,
         basedir,
-        depends map { (x: ScopedKey[_]) =>
+        depends map { (x: ScopedKey[?]) =>
           loop(x, generation + 1)
         }
       )
@@ -54,7 +54,7 @@ object SettingGraph {
 case class SettingGraph(
     name: String,
     definedIn: Option[String],
-    data: Option[ScopedKeyData[_]],
+    data: Option[ScopedKeyData[?]],
     description: Option[String],
     basedir: File,
     depends: Set[SettingGraph]
@@ -105,7 +105,7 @@ object Graph {
         Vector(limitLine((twoSpaces * level) + "#-" + display(node) + " (cycle)"))
       else {
         val line = limitLine((twoSpaces * level) + (if (level == 0) "" else "+-") + display(node))
-        val cs = Vector(children(node): _*)
+        val cs = Vector(children(node)*)
         val childLines = cs map {
           toAsciiLines(_, level + 1, parents + node)
         }

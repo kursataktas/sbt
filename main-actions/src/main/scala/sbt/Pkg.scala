@@ -40,10 +40,10 @@ object Pkg:
   def JarManifest(m: Manifest) = PackageOption.JarManifest(m)
   def MainClass(mainClassName: String) = PackageOption.MainClass(mainClassName)
   def MainfestAttributes(attributes: (Attributes.Name, String)*) =
-    PackageOption.ManifestAttributes(attributes: _*)
+    PackageOption.ManifestAttributes(attributes*)
   def ManifestAttributes(attributes: (String, String)*) = {
     val converted = for ((name, value) <- attributes) yield (new Attributes.Name(name), value)
-    PackageOption.ManifestAttributes(converted: _*)
+    PackageOption.ManifestAttributes(converted*)
   }
   // 2010-01-01
   private val default2010Timestamp: Long = 1262304000000L
@@ -191,7 +191,7 @@ object Pkg:
     import Attributes.Name._
     val attribKeys = Seq(SPECIFICATION_TITLE, SPECIFICATION_VERSION, SPECIFICATION_VENDOR)
     val attribVals = Seq(name, version, orgName)
-    PackageOption.ManifestAttributes(attribKeys.zip(attribVals): _*)
+    PackageOption.ManifestAttributes(attribKeys.zip(attribVals)*)
   }
   def addImplManifestAttributes(
       name: String,
@@ -216,7 +216,7 @@ object Pkg:
     val attribVals = Seq(name, version, orgName, org)
     PackageOption.ManifestAttributes(attribKeys.zip(attribVals) ++ {
       homepage map (h => (IMPLEMENTATION_URL, h.toString))
-    }: _*)
+    }*)
   }
 
   def makeJar(
@@ -243,7 +243,7 @@ object Pkg:
   given manifestFormat: JsonFormat[Manifest] = projectFormat[Manifest, Array[Byte]](
     m => {
       val bos = new java.io.ByteArrayOutputStream()
-      m write bos
+      m.write(bos)
       bos.toByteArray
     },
     bs => new Manifest(new java.io.ByteArrayInputStream(bs))
@@ -308,7 +308,7 @@ object PackageOption:
             unbuilder.endObject()
             PackageOption.ManifestAttributes(attributes.map { case (k, v) =>
               Attributes.Name(k) -> v
-            }: _*)
+            }*)
           case None => deserializationError("Expected JsObject but found None")
       override def write[J](obj: PackageOption.ManifestAttributes, builder: Builder[J]): Unit =
         builder.beginObject()

@@ -25,7 +25,7 @@ abstract class EvaluateSettings[ScopeType]:
   import init._
 
   protected def executor: Executor
-  protected def compiledSettings: Seq[Compiled[_]]
+  protected def compiledSettings: Seq[Compiled[?]]
 
   import EvaluationState.*
 
@@ -54,12 +54,12 @@ abstract class EvaluateSettings[ScopeType]:
             case Some(i) => single[s, A](transform(i), x => o.f(Some(x)))
         case StaticScopes => strictConstant(allScopes)
 
-  private lazy val roots: Seq[INode[_]] = compiledSettings.flatMap { cs =>
+  private lazy val roots: Seq[INode[?]] = compiledSettings.flatMap { cs =>
     (cs.settings map { s =>
       val t = transform(s.init)
       static(s.key) = t
       t
-    }): Seq[INode[_]]
+    }): Seq[INode[?]]
   }
 
   private val running = new AtomicInteger
@@ -85,9 +85,9 @@ abstract class EvaluateSettings[ScopeType]:
 
   private lazy val getValue: [A] => INode[A] => A = [A] => (fa: INode[A]) => fa.get
 
-  private def submitEvaluate(node: INode[_]) = submit(node.evaluate())
+  private def submitEvaluate(node: INode[?]) = submit(node.evaluate())
 
-  private def submitCallComplete[A](node: BindNode[_, A], value: A) =
+  private def submitCallComplete[A](node: BindNode[?, A], value: A) =
     submit(node.callComplete(value))
 
   private def submit(work: => Unit): Unit =
@@ -107,10 +107,10 @@ abstract class EvaluateSettings[ScopeType]:
 
   private sealed abstract class INode[A1]:
     private var state: EvaluationState = New
-    private var value: A1 = _
-    private val blocking = new collection.mutable.ListBuffer[INode[_]]
+    private var value: A1 = scala.compiletime.uninitialized
+    private val blocking = new collection.mutable.ListBuffer[INode[?]]
     private var blockedOn: Int = 0
-    private val calledBy = new collection.mutable.ListBuffer[BindNode[_, A1]]
+    private val calledBy = new collection.mutable.ListBuffer[BindNode[?, A1]]
 
     override def toString(): String =
       getClass.getName + " (state=" + state + ",blockedOn=" + blockedOn + ",calledBy=" + calledBy.size + ",blocking=" + blocking.size + "): " +
@@ -129,7 +129,7 @@ abstract class EvaluateSettings[ScopeType]:
       value
     }
 
-    final def doneOrBlock(from: INode[_]): Boolean = synchronized {
+    final def doneOrBlock(from: INode[?]): Boolean = synchronized {
       val ready = state == Evaluated
       if (!ready) {
         blocking += from
@@ -167,7 +167,7 @@ abstract class EvaluateSettings[ScopeType]:
 
     final def evaluate(): Unit = synchronized { evaluate0() }
 
-    protected final def makeCall(source: BindNode[_, A1], target: INode[A1]): Unit = {
+    protected final def makeCall(source: BindNode[?, A1], target: INode[A1]): Unit = {
       assert(state == Ready, "Invalid state for call to makeCall: " + toString)
       state = Calling
       target.call(source)
@@ -189,7 +189,7 @@ abstract class EvaluateSettings[ScopeType]:
       calledBy.clear()
     }
 
-    final def call(by: BindNode[_, A1]): Unit = synchronized {
+    final def call(by: BindNode[?, A1]): Unit = synchronized {
       registerIfNew()
       state match {
         case Evaluated => submitCallComplete(by, value)
@@ -199,7 +199,7 @@ abstract class EvaluateSettings[ScopeType]:
       }
     }
 
-    protected def dependsOn: Seq[INode[_]]
+    protected def dependsOn: Seq[INode[?]]
     protected def evaluate0(): Unit
   end INode
 
@@ -212,7 +212,7 @@ abstract class EvaluateSettings[ScopeType]:
     MixedNode[Tuple1[A1], A2](Tuple1(in), { case Tuple1(a) => f(a) })
 
   private final class BindNode[A1, A2](in: INode[A1], f: A1 => INode[A2]) extends INode[A2]:
-    protected def dependsOn: Seq[INode[_]] = in :: Nil
+    protected def dependsOn: Seq[INode[?]] = in :: Nil
     protected def evaluate0(): Unit = makeCall(this, f(in.get))
     def callComplete(value: A2): Unit = synchronized {
       assert(isCalling, "Invalid state for callComplete(" + value + "): " + toString)
@@ -223,11 +223,11 @@ abstract class EvaluateSettings[ScopeType]:
   private final class MixedNode[Tup <: Tuple, A1](in: Tuple.Map[Tup, INode], f: Tup => A1)
       extends INode[A1]:
     import TupleMapExtension.*
-    protected override def dependsOn: Seq[INode[_]] = in.toList0
+    protected override def dependsOn: Seq[INode[?]] = in.toList0
     protected override def evaluate0(): Unit = setValue(f(in.unmap(getValue)))
 
   private final class UniformNode[A1, A2](in: List[INode[A1]], f: List[A1] => A2) extends INode[A2]:
-    protected override def dependsOn: Seq[INode[_]] = in
+    protected override def dependsOn: Seq[INode[?]] = in
     protected override def evaluate0(): Unit = setValue(f(in.map(_.get)))
 
 end EvaluateSettings

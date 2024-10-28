@@ -24,15 +24,15 @@ sealed trait DslEntry {
 object DslEntry {
   implicit def fromSettingsDef(inc: SettingsDefinition): DslEntry =
     DslSetting(inc)
-  implicit def fromSettingsDef(inc: Seq[Setting[_]]): DslEntry =
+  implicit def fromSettingsDef(inc: Seq[Setting[?]]): DslEntry =
     DslSetting(inc)
 
   /** Represents a DSL entry which adds settings to the current project. */
   sealed trait ProjectSettings extends DslEntry {
-    def toSettings: Seq[Setting[_]]
+    def toSettings: Seq[Setting[?]]
   }
   object ProjectSettings {
-    def unapply(e: DslEntry): Option[Seq[Setting[_]]] =
+    def unapply(e: DslEntry): Option[Seq[Setting[?]]] =
       e match {
         case e: ProjectSettings => Some(e.toSettings)
         case _                  => None
@@ -62,26 +62,26 @@ object DslEntry {
 
   /** this represents an `enablePlugins()` in the sbt DSL */
   case class DslEnablePlugins(plugins: Seq[AutoPlugin]) extends ProjectManipulation {
-    override val toFunction: Project => Project = _.enablePlugins(plugins: _*)
+    override val toFunction: Project => Project = _.enablePlugins(plugins*)
   }
 
   /** this represents an `disablePlugins()` in the sbt DSL */
   case class DslDisablePlugins(plugins: Seq[AutoPlugin]) extends ProjectManipulation {
-    override val toFunction: Project => Project = _.disablePlugins(plugins: _*)
+    override val toFunction: Project => Project = _.disablePlugins(plugins*)
   }
 
   /** Represents registering an internal dependency for the current project */
   case class DslDependsOn(cs: Seq[ClasspathDep[ProjectReference]]) extends ProjectManipulation {
-    override val toFunction: Project => Project = _.dependsOn(cs: _*)
+    override val toFunction: Project => Project = _.dependsOn(cs*)
   }
 
   /** Represents registering a set of configurations with the current project. */
   case class DslConfigs(cs: Seq[Configuration]) extends ProjectManipulation {
-    override val toFunction: Project => Project = _.configs(cs: _*)
+    override val toFunction: Project => Project = _.configs(cs*)
   }
 
   /** this represents an `aggregateProjects()` in the sbt DSL */
   case class DslAggregate(refs: Seq[ProjectReference]) extends ProjectManipulation {
-    override val toFunction: Project => Project = _.aggregate(refs: _*)
+    override val toFunction: Project => Project = _.aggregate(refs*)
   }
 }

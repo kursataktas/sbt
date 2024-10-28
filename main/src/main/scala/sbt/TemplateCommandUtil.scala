@@ -32,14 +32,14 @@ private[sbt] object TemplateCommandUtil {
     )
 
   private def templateCommandParser: Parser[Seq[String]] =
-    (token(Space) ~> repsep(StringBasic, token(Space))) | (token(EOF) map (_ => Nil))
+    (token(Space) ~> repsep(StringBasic, token(Space))) | (token(EOF).map(_ => Nil))
 
   private def runTemplate(s0: State, inputArg: Seq[String]): State = {
     import BuildPaths._
     val globalBase = getGlobalBase(s0)
-    val infos = (s0 get templateResolverInfos getOrElse Nil).toList
+    val infos = s0.get(templateResolverInfos).getOrElse(Nil).toList
     val log = s0.globalLogging.full
-    val extracted = (Project extract s0)
+    val extracted = Project.extract(s0)
     val (s1, ivyConf) = extracted.runTask(Keys.ivyConfiguration, s0)
     val scalaModuleInfo = extracted.get(Keys.updateSbtClassifiers / Keys.scalaModuleInfo)
     val templateDescriptions = extracted.get(Keys.templateDescriptions)
@@ -123,12 +123,12 @@ private[sbt] object TemplateCommandUtil {
       interfaceClassName: String,
       methodName: String,
       loader: ClassLoader
-  )(argTypes: Class[_]*)(args: AnyRef*): AnyRef = {
+  )(argTypes: Class[?]*)(args: AnyRef*): AnyRef = {
     val interfaceClass = getInterfaceClass(interfaceClassName, loader)
     val interface = interfaceClass.getDeclaredConstructor().newInstance().asInstanceOf[AnyRef]
-    val method = interfaceClass.getMethod(methodName, argTypes: _*)
+    val method = interfaceClass.getMethod(methodName, argTypes*)
     try {
-      method.invoke(interface, args: _*)
+      method.invoke(interface, args*)
     } catch {
       case e: InvocationTargetException => throw e.getCause
     }
@@ -150,7 +150,7 @@ private[sbt] object TemplateCommandUtil {
     val templateId = s"${info.module.organization}_${info.module.name}_${info.module.revision}"
     val templateDirectory = new File(templatesBaseDirectory, templateId)
     def jars = (templateDirectory ** -DirectoryFilter).get()
-    if (!(info.module.revision endsWith "-SNAPSHOT") && jars.nonEmpty) jars.toList.map(_.toPath)
+    if !info.module.revision.endsWith("-SNAPSHOT") && jars.nonEmpty then jars.toList.map(_.toPath)
     else {
       IO.createDirectory(templateDirectory)
       val m = lm.wrapDependencyInModule(info.module, scalaModuleInfo)
@@ -195,7 +195,7 @@ private[sbt] object TemplateCommandUtil {
         out.println("Welcome to sbt new!")
         out.println("Here are some templates to get started:")
         val ans = askTemplate(mappingList, 0)
-        val mappings = Map(mappingList: _*)
+        val mappings = Map(mappingList*)
         mappings.get(ans).map(_._1).toList
       }
 

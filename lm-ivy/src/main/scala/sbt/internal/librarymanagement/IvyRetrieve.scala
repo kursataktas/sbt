@@ -82,14 +82,14 @@ object IvyRetrieve {
       confReport: ConfigurationResolveReport,
       dep: IvyNode
   ): ModuleReport = {
-    def toExtraAttributes(ea: ju.Map[_, _]): Map[String, String] =
+    def toExtraAttributes(ea: ju.Map[?, ?]): Map[String, String] =
       Map(ea.entrySet.toArray collect {
         case entry: ju.Map.Entry[_, _]
             if nonEmptyString(entry.getKey.toString).isDefined && nonEmptyString(
               entry.getValue.toString
             ).isDefined =>
           (entry.getKey.toString, entry.getValue.toString)
-      }: _*)
+      }*)
     def toCaller(caller: IvyCaller): Caller = {
       val m = toModuleID(caller.getModuleRevisionId)
       val callerConfigurations = caller.getCallerConfigurations.toVector collect {

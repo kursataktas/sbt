@@ -45,7 +45,7 @@ object Cross {
       val x = Project.extract(state)
       import x._
       val knownVersions = crossVersions(x, currentRef)
-      val version = token(StringBasic.examples(knownVersions: _*)).map { arg =>
+      val version = token(StringBasic.examples(knownVersions*)).map { arg =>
         val force = arg.endsWith("!")
         val versionArg = if (force) arg.dropRight(1) else arg
         versionArg.split("=", 2) match {
@@ -105,9 +105,9 @@ object Cross {
 
   private def crossVersions(extracted: Extracted, proj: ResolvedReference): Seq[String] = {
     import extracted._
-    ((proj / crossScalaVersions) get structure.data) getOrElse {
+    (proj / crossScalaVersions).get(structure.data).getOrElse {
       // reading scalaVersion is a one-time deal
-      ((proj / scalaVersion) get structure.data).toSeq
+      (proj / scalaVersion).get(structure.data).toSeq
     }
   }
 
@@ -171,7 +171,7 @@ object Cross {
           Seq(s"$SwitchCommand $verbose $version!", aggCommand)
         }
       case Right((keys, taskArgs)) =>
-        def project(key: ScopedKey[_]): Option[ProjectRef] = key.scope.project.toOption match {
+        def project(key: ScopedKey[?]): Option[ProjectRef] = key.scope.project.toOption match {
           case Some(p: ProjectRef) => Some(p)
           case _                   => None
         }
@@ -226,7 +226,7 @@ object Cross {
     restoreCapturedSession(state, Project.extract(state))
   }
 
-  private val CapturedSession = AttributeKey[Seq[Setting[_]]]("crossCapturedSession")
+  private val CapturedSession = AttributeKey[Seq[Setting[?]]]("crossCapturedSession")
 
   private def captureCurrentSession(state: State, extracted: Extracted): State = {
     state.put(CapturedSession, extracted.session.rawAppend)
@@ -279,7 +279,7 @@ object Cross {
       case ScalaHomeVersion(homePath, resolveVersion, _) =>
         val home = IO.resolve(extracted.currentProject.base, homePath)
         if (home.exists()) {
-          val instance = ScalaInstance(home)(state.classLoaderCache.apply _)
+          val instance = ScalaInstance(home)(state.classLoaderCache.apply)
           val version = resolveVersion.getOrElse(instance.actualVersion)
           (version, Some((home, instance)))
         } else {
@@ -414,7 +414,7 @@ object Cross {
       }
     }
 
-    val filterKeys: Set[AttributeKey[_]] = Set(scalaVersion, scalaHome, scalaInstance).map(_.key)
+    val filterKeys: Set[AttributeKey[?]] = Set(scalaVersion, scalaHome, scalaInstance).map(_.key)
 
     val projectsContains: Reference => Boolean = projects.map(_._1).toSet.contains
 

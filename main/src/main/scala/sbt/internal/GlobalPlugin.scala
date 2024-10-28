@@ -32,8 +32,8 @@ object GlobalPlugin {
   // constructs a sequence of settings that may be appended to a project's settings to
   //  statically add the global plugin as a classpath dependency.
   //  static here meaning that the relevant tasks for the global plugin have already been evaluated
-  def inject(gp: GlobalPluginData): Seq[Setting[_]] =
-    Seq[Setting[_]](
+  def inject(gp: GlobalPluginData): Seq[Setting[?]] =
+    Seq[Setting[?]](
       projectDescriptors ~= { _ ++ gp.descriptors },
       projectDependencies ++= gp.projectID +: gp.dependencies,
       resolvers := {
@@ -48,7 +48,7 @@ object GlobalPlugin {
   private def injectInternalClasspath(
       config: Configuration,
       cp: Def.Classpath,
-  ): Setting[_] =
+  ): Setting[?] =
     (config / internalDependencyClasspath) ~= { prev =>
       (prev ++ cp).distinct
     }
@@ -92,8 +92,8 @@ object GlobalPlugin {
         (prods ++ intcp).distinct
       )(updateReport.value)
     }
-    val resolvedTaskInit = taskInit mapReferenced Project.mapScope(Scope replaceThis p)
-    val task = resolvedTaskInit evaluate data
+    val resolvedTaskInit = taskInit.mapReferenced(Project.mapScope(Scope.replaceThis(p)))
+    val task = resolvedTaskInit.evaluate(data)
     val roots = resolvedTaskInit.dependencies
     evaluate(state, structure, task, roots)
   }
@@ -101,7 +101,7 @@ object GlobalPlugin {
       state: State,
       structure: BuildStructure,
       t: Task[T],
-      roots: Seq[ScopedKey[_]]
+      roots: Seq[ScopedKey[?]]
   ): (State, T) = {
     import EvaluateTask._
     withStreams(structure, state) { str =>
@@ -134,6 +134,6 @@ final case class GlobalPluginData(
 final case class GlobalPlugin(
     data: GlobalPluginData,
     structure: BuildStructure,
-    inject: Seq[Setting[_]],
+    inject: Seq[Setting[?]],
     base: File
 )

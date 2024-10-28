@@ -57,7 +57,7 @@ object RelationTest extends Properties("Relation") {
   property("Groups correctly") = forAll { (entries: List[(Int, Double)], randomInt: Int) =>
     val splitInto = math.abs(randomInt) % 10 + 1 // Split into 1-10 groups.
     val rel = Relation.empty[Int, Double] ++ entries
-    val grouped = rel groupBy (_._1 % splitInto)
+    val grouped = rel.groupBy(_._1 % splitInto)
     all(grouped.toSeq) { case (k, rel_k) =>
       rel_k._1s forall { _ % splitInto == k }
     }

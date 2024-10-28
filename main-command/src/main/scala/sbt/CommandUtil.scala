@@ -46,7 +46,7 @@ object CommandUtil {
   def fill(s: String, size: Int): String = s + " " * math.max(size - s.length, 0)
 
   def withAttribute[T](s: State, key: AttributeKey[T], ifMissing: String)(f: T => State): State =
-    s get key match {
+    s.get(key) match {
       case None =>
         s.log.error(ifMissing); s.fail
       case Some(nav) => f(nav)
@@ -54,7 +54,7 @@ object CommandUtil {
 
   def singleArgument(exampleStrings: Set[String]): Parser[String] = {
     val arg = (NotSpaceClass ~ any.*) map { case (ns, s) => (ns +: s).mkString }
-    token(Space) ~> token(arg examples exampleStrings)
+    token(Space) ~> token(arg.examples(exampleStrings))
   }
 
   def detail(selected: String, detailMap: Map[String, String]): String =

@@ -32,9 +32,9 @@ import sbt.io.IO
 final case class SessionSettings(
     currentBuild: URI,
     currentProject: Map[URI, String],
-    original: Seq[Setting[_]],
+    original: Seq[Setting[?]],
     append: SessionMap,
-    rawAppend: Seq[Setting[_]],
+    rawAppend: Seq[Setting[?]],
     currentEval: () => Eval
 ) {
 
@@ -76,19 +76,19 @@ final case class SessionSettings(
    * @param ss  The raw settings to include
    * @return A new SessionSettings with the appended settings.
    */
-  def appendRaw(ss: Seq[Setting[_]]): SessionSettings = copy(rawAppend = rawAppend ++ ss)
+  def appendRaw(ss: Seq[Setting[?]]): SessionSettings = copy(rawAppend = rawAppend ++ ss)
 
   /**
    * @return  A combined list of all Setting[_] objects for the current session, in priority order.
    */
-  def mergeSettings: Seq[Setting[_]] = original ++ merge(append) ++ rawAppend
+  def mergeSettings: Seq[Setting[?]] = original ++ merge(append) ++ rawAppend
 
   /**
    * @return  A new SessionSettings object where additional transient settings are removed.
    */
   def clearExtraSettings: SessionSettings = copy(append = Map.empty, rawAppend = Nil)
 
-  private def merge(map: SessionMap): Seq[Setting[_]] =
+  private def merge(map: SessionMap): Seq[Setting[?]] =
     map.values.toSeq.flatten[SessionSetting].map(_._1)
 
   private def modify(
@@ -146,7 +146,7 @@ object SessionSettings:
 
   /** Checks to see if any session settings are being discarded and issues a warning. */
   def checkSession(newSession: SessionSettings, oldState: State): Unit = {
-    val oldSettings = (oldState get Keys.sessionSettings).toList.flatMap(_.append).flatMap(_._2)
+    val oldSettings = oldState.get(Keys.sessionSettings).toList.flatMap(_.append).flatMap(_._2)
     if (newSession.append.isEmpty && oldSettings.nonEmpty)
       oldState.log.warn(
         "Discarding " + pluralize(
@@ -206,9 +206,9 @@ object SessionSettings:
   def writeSettings(
       pref: ProjectRef,
       settings: List[SessionSetting],
-      original: Seq[Setting[_]],
+      original: Seq[Setting[?]],
       structure: BuildStructure
-  ): (Seq[SessionSetting], Seq[Setting[_]]) = {
+  ): (Seq[SessionSetting], Seq[Setting[?]]) = {
     val project =
       Project.getProject(pref, structure).getOrElse(sys.error("Invalid project reference " + pref))
     val writeTo: File = BuildPaths
@@ -219,7 +219,7 @@ object SessionSettings:
 
     val path = writeTo.getAbsolutePath
     val (inFile, other, _) =
-      original.reverse.foldLeft((List[Setting[_]](), List[Setting[_]](), Set.empty[ScopedKey[_]])) {
+      original.reverse.foldLeft((List[Setting[?]](), List[Setting[?]](), Set.empty[ScopedKey[?]])) {
         case ((in, oth, keys), s) =>
           s.pos match {
             case RangePosition(`path`, _) if !keys.contains(s.key) => (s :: in, oth, keys + s.key)
@@ -227,18 +227,20 @@ object SessionSettings:
           }
       }
 
-    val (_, oldShifted, replace) = inFile.foldLeft((0, List[Setting[_]](), Seq[SessionSetting]())) {
+    val (_, oldShifted, replace) = inFile.foldLeft((0, List[Setting[?]](), Seq[SessionSetting]())) {
       case ((offs, olds, repl), s) =>
         val RangePosition(_, r @ LineRange(start, end)) = s.pos: @unchecked
-        settings find (_._1.key == s.key) match {
+        settings.find(_._1.key == s.key) match {
           case Some(ss @ (ns, newLines)) if !ns.init.dependencies.contains(ns.key) =>
-            val shifted = ns withPos RangePosition(
-              path,
-              LineRange(start - offs, start - offs + newLines.size)
+            val shifted = ns.withPos(
+              RangePosition(
+                path,
+                LineRange(start - offs, start - offs + newLines.size)
+              )
             )
             (offs + end - start - newLines.size, shifted :: olds, ss +: repl)
           case _ =>
-            val shifted = s withPos RangePosition(path, r shift -offs)
+            val shifted = s.withPos(RangePosition(path, r.shift(-offs)))
             (offs, shifted :: olds, repl)
         }
     }
@@ -251,7 +253,7 @@ object SessionSettings:
     val (newWithPos, _) = newSettings.foldLeft((List[SessionSetting](), adjusted.size + 1)) {
       case ((acc, line), (s, newLines)) =>
         val endLine = line + newLines.size
-        ((s withPos RangePosition(path, LineRange(line, endLine)), newLines) :: acc, endLine + 1)
+        ((s.withPos(RangePosition(path, LineRange(line, endLine))), newLines) :: acc, endLine + 1)
     }
     (newWithPos.reverse, other ++ oldShifted)
   }

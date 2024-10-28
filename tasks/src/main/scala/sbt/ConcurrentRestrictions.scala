@@ -199,7 +199,7 @@ object ConcurrentRestrictions {
       backing: Executor,
       tags: ConcurrentRestrictions,
       warn: String => Unit
-  ): CompletionService with AutoCloseable = {
+  ): CompletionService & AutoCloseable = {
     completionService(backing, tags, warn, _ => false)
   }
 
@@ -213,7 +213,7 @@ object ConcurrentRestrictions {
       tags: ConcurrentRestrictions,
       warn: String => Unit,
       isSentinel: TaskId[?] => Boolean,
-  ): CompletionService with CancelSentiels with AutoCloseable = {
+  ): CompletionService & CancelSentiels & AutoCloseable = {
 
     // Represents submitted work for a task.
     final class Enqueue(val node: TaskId[?], val work: () => Completed)
@@ -241,7 +241,7 @@ object ConcurrentRestrictions {
        */
       private val pending = new LinkedList[Enqueue]
 
-      private val sentinels: mutable.ListBuffer[JFuture[_]] = mutable.ListBuffer.empty
+      private val sentinels: mutable.ListBuffer[JFuture[?]] = mutable.ListBuffer.empty
 
       def cancelSentinels(): Unit = {
         sentinels.toList foreach { s =>
@@ -251,24 +251,22 @@ object ConcurrentRestrictions {
       }
 
       def submit(node: TaskId[?], work: () => Completed): Unit = synchronized {
-        if (closed.get) throw new RejectedExecutionException
-        else if (isSentinel(node)) {
+        if closed.get then throw new RejectedExecutionException
+        else if isSentinel(node) then
           // skip all checks for sentinels
           sentinels += CompletionService.submitFuture(work, jservice)
-        } else {
+        else
           val newState = tags.add(tagState, node)
           // if the new task is allowed to run concurrently with the currently running tasks,
           //   submit it to be run by the backing j.u.c.CompletionService
-          if (tags valid newState) {
+          if tags.valid(newState) then
             tagState = newState
             submitValid(node, work)
             ()
-          } else {
-            if (running == 0) errorAddingToIdle()
+          else
+            if running == 0 then errorAddingToIdle()
             pending.add(new Enqueue(node, work))
             ()
-          }
-        }
         ()
       }
       private def submitValid(node: TaskId[?], work: () => Completed): Unit = {

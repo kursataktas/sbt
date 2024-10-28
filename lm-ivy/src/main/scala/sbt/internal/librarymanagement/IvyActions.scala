@@ -127,7 +127,7 @@ object IvyActions {
         Option(deliver(module, configuration, log))
       }
 
-    val artifacts = Map(configuration.artifacts: _*)
+    val artifacts = Map(configuration.artifacts*)
     val checksums = configuration.checksums
     module.withModule(log) { case (ivy, md, _) =>
       val resolver = ivy.getSettings.getResolver(resolverName)

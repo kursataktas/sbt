@@ -455,14 +455,10 @@ trait For2_13Use3Formats { self: sjsonnew.BasicJsonProtocol =>
 }
 
 trait CrossVersionFormats {
-  self: sjsonnew.BasicJsonProtocol
-    with sbt.librarymanagement.DisabledFormats
-    with sbt.librarymanagement.BinaryFormats
-    with sbt.librarymanagement.ConstantFormats
-    with sbt.librarymanagement.PatchFormats
-    with sbt.librarymanagement.FullFormats
-    with sbt.librarymanagement.For3Use2_13Formats
-    with sbt.librarymanagement.For2_13Use3Formats =>
+  self: sjsonnew.BasicJsonProtocol & sbt.librarymanagement.DisabledFormats &
+    sbt.librarymanagement.BinaryFormats & sbt.librarymanagement.ConstantFormats &
+    sbt.librarymanagement.PatchFormats & sbt.librarymanagement.FullFormats &
+    sbt.librarymanagement.For3Use2_13Formats & sbt.librarymanagement.For2_13Use3Formats =>
   implicit lazy val CrossVersionFormat: JsonFormat[CrossVersion] = {
     val format = flatUnionFormat8[
       CrossVersion,

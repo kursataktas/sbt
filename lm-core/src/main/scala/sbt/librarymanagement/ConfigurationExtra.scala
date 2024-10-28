@@ -35,7 +35,7 @@ object Configurations {
   }
 
   private[sbt] def internal(base: Configuration, ext: Configuration*) =
-    Configuration.of(base.id + "Internal", base.name + "-internal").extend(ext: _*).hide
+    Configuration.of(base.id + "Internal", base.name + "-internal").extend(ext*).hide
   private[sbt] def fullInternal(base: Configuration): Configuration =
     internal(base, base, Optional, Provided)
   private[sbt] def optionalInternal(base: Configuration): Configuration =
@@ -44,10 +44,10 @@ object Configurations {
   lazy val Default = Configuration.of("Default", "default")
   lazy val Compile = Configuration.of("Compile", "compile")
   @deprecated("Create a separate subproject for testing instead", "1.9.0")
-  lazy val IntegrationTest = Configuration.of("IntegrationTest", "it") extend (Runtime)
+  lazy val IntegrationTest = Configuration.of("IntegrationTest", "it").extend(Runtime)
   lazy val Provided = Configuration.of("Provided", "provided")
-  lazy val Runtime = Configuration.of("Runtime", "runtime") extend (Compile)
-  lazy val Test = Configuration.of("Test", "test") extend (Runtime)
+  lazy val Runtime = Configuration.of("Runtime", "runtime").extend(Compile)
+  lazy val Test = Configuration.of("Test", "test").extend(Runtime)
   lazy val System = Configuration.of("System", "system")
   lazy val Optional = Configuration.of("Optional", "optional")
   lazy val Pom = Configuration.of("Pom", "pom")
@@ -66,9 +66,9 @@ object Configurations {
   private[sbt] def removeDuplicates(configs: Iterable[Configuration]) =
     Set(
       scala.collection.mutable
-        .Map(configs.map(config => (config.name, config)).toSeq: _*)
+        .Map(configs.map(config => (config.name, config)).toSeq*)
         .values
-        .toList: _*
+        .toList*
     )
 
   /** Returns true if the configuration should be under the influence of scalaVersion. */
@@ -115,9 +115,9 @@ private[sbt] object ConfigurationMacro:
     import quotes.reflect.*
     def enclosingTerm(sym: Symbol): Symbol =
       sym match
-        case sym if sym.flags is Flags.Macro => enclosingTerm(sym.owner)
-        case sym if !sym.isTerm              => enclosingTerm(sym.owner)
-        case _                               => sym
+        case sym if sym.flags.is(Flags.Macro) => enclosingTerm(sym.owner)
+        case sym if !sym.isTerm               => enclosingTerm(sym.owner)
+        case _                                => sym
     val term = enclosingTerm(Symbol.spliceOwner)
     if !term.isValDef then
       report.error(

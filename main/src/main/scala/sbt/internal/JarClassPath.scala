@@ -29,7 +29,7 @@ private[internal] object JarClassPath {
   }
 }
 private[internal] final class JarClassPath(val jars: Seq[File]) {
-  private def isSnapshot(file: File): Boolean = file.getName contains "-SNAPSHOT"
+  private def isSnapshot(file: File): Boolean = file.getName.contains("-SNAPSHOT")
   private val jarSet = jars.toSet
   val (snapshotJars, regularJars) = jars.partition(isSnapshot)
   private val snapshots = snapshotJars.map(new JarClassPath.Snapshot(_))

@@ -27,8 +27,8 @@ import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.BeforeAndAfterAll
 
 trait AbstractServerTest extends AnyFunSuite with BeforeAndAfterAll {
-  private var temp: File = _
-  var svr: TestServer = _
+  private var temp: File = scala.compiletime.uninitialized
+  var svr: TestServer = scala.compiletime.uninitialized
   def testDirectory: String
   def testPath: Path = temp.toPath.resolve(testDirectory)
 
@@ -84,7 +84,7 @@ object TestServer {
       Try {
         testServer.waitForString(10.seconds) { s =>
           println(s)
-          s contains """"capabilities":{""""
+          s.contains(""""capabilities":{"""")
         }
       }
     init.get
@@ -124,7 +124,7 @@ object TestServer {
       Try {
         testServer.waitForString(10.seconds) { s =>
           if (s.nonEmpty) println(s)
-          s contains """"capabilities":{""""
+          s.contains(""""capabilities":{"""")
         }
       }
 

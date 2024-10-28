@@ -25,7 +25,7 @@ object AppendSpec {
     s
   }
 
-  Global / onLoad += doSideEffect _
+  Global / onLoad += (() => doSideEffect())
   Global / onLoad += (() => doSideEffect())
   Global / onLoad += (() => println("foo"))
 }

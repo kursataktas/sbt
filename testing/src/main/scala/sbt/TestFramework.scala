@@ -181,7 +181,7 @@ private[sbt] final class TestRunner(
 }
 
 object TestFramework {
-  def apply(implClassNames: String*): TestFramework = new TestFramework(implClassNames: _*)
+  def apply(implClassNames: String*): TestFramework = new TestFramework(implClassNames*)
 
   def getFingerprints(framework: Framework): Seq[Fingerprint] =
     framework.getClass.getMethod("fingerprints").invoke(framework) match {
@@ -290,7 +290,7 @@ object TestFramework {
           val taskDef = testTask.taskDef
           (taskDef.fullyQualifiedName, createTestFunction(loader, taskDef, runner, testTask))
         }
-      }: _*)
+      }*)
 
     val endTask = (result: TestResult) => foreachListenerSafe(_.doComplete(result))
     (startTask, order(testTasks, ordered), endTask)

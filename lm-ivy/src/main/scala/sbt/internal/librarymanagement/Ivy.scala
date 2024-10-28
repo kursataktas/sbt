@@ -515,9 +515,9 @@ private[sbt] object IvySbt {
   private[sbt] def isChanging(dd: DependencyDescriptor): Boolean =
     dd.isChanging || isChanging(dd.getDependencyRevisionId)
   private[sbt] def isChanging(module: ModuleID): Boolean =
-    module.revision endsWith "-SNAPSHOT"
+    module.revision.endsWith("-SNAPSHOT")
   private[sbt] def isChanging(mrid: ModuleRevisionId): Boolean =
-    mrid.getRevision endsWith "-SNAPSHOT"
+    mrid.getRevision.endsWith("-SNAPSHOT")
 
   def resolverChain(
       name: String,
@@ -564,7 +564,7 @@ private[sbt] object IvySbt {
   def hasImplicitClassifier(artifact: IArtifact): Boolean = {
     import scala.jdk.CollectionConverters._
     artifact.getQualifiedExtraAttributes.asScala.keys
-      .exists(_.asInstanceOf[String] startsWith "m:")
+      .exists(_.asInstanceOf[String].startsWith("m:"))
   }
   private def setModuleConfigurations(
       settings: IvySettings,
@@ -956,17 +956,16 @@ private[sbt] object IvySbt {
     val deps = new java.util.LinkedHashMap[ModuleRevisionId, List[DependencyDescriptor]]
     for (dd <- dependencies) {
       val id = dd.getDependencyRevisionId
-      val updated = deps get id match {
+      val updated = deps.get(id) match
         case null => dd :: Nil
         case v    => dd :: v
-      }
       deps.put(id, updated)
     }
 
     import scala.jdk.CollectionConverters._
     deps.values.asScala.toSeq.flatMap { dds =>
-      val mergeable = dds.lazyZip(dds.tail).forall(ivyint.MergeDescriptors.mergeable _)
-      if (mergeable) dds.reverse.reduceLeft(ivyint.MergeDescriptors.apply _) :: Nil else dds
+      val mergeable = dds.lazyZip(dds.tail).forall(ivyint.MergeDescriptors.mergeable)
+      if (mergeable) dds.reverse.reduceLeft(ivyint.MergeDescriptors.apply) :: Nil else dds
     }
   }
 

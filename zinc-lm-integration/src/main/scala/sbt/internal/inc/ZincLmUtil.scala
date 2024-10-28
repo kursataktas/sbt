@@ -99,11 +99,11 @@ object ZincLmUtil {
         .withConfigurations(Some(Compile.name))
     } else {
       val compilerBridgeId = scalaVersion match {
-        case sc if sc startsWith "2.10." => "compiler-bridge_2.10"
-        case sc if sc startsWith "2.11." => "compiler-bridge_2.11"
-        case sc if sc startsWith "2.12." => "compiler-bridge_2.12"
-        case "2.13.0-M1"                 => "compiler-bridge_2.12"
-        case _                           => "compiler-bridge_2.13"
+        case sc if sc.startsWith("2.10.") => "compiler-bridge_2.10"
+        case sc if sc.startsWith("2.11.") => "compiler-bridge_2.11"
+        case sc if sc.startsWith("2.12.") => "compiler-bridge_2.12"
+        case "2.13.0-M1"                  => "compiler-bridge_2.12"
+        case _                            => "compiler-bridge_2.13"
       }
       ModuleID(SbtOrganization, compilerBridgeId, ZincComponentManager.version)
         .withConfigurations(Some(Compile.name))

@@ -186,7 +186,7 @@ object IvyScalaUtil {
       if (configurations.isEmpty) names
       else {
         val configSet = configurationSet(configurations)
-        configSet.intersect(HashSet(names: _*))
+        configSet.intersect(HashSet(names*))
         configSet.toArray
       }
     }
