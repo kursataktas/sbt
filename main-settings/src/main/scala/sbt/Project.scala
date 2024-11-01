@@ -15,6 +15,7 @@ import sbt.internal.util.Dag
 import sbt.internal.util.complete.Parser
 import sbt.internal.util.complete.DefaultParsers
 import Scope.ThisScope
+import sbt.Scope.ThisBuildScope
 
 sealed trait ProjectDefinition[PR <: ProjectReference] {
 
@@ -345,10 +346,10 @@ object Project:
     ss.map(_.mapReferenced(f))
 
   def inThisBuild(ss: Seq[Setting[?]]): Seq[Setting[?]] =
-    inScope(ThisScope.copy(project = Select(ThisBuild)))(ss)
+    inScope(ThisBuildScope)(ss)
 
   private[sbt] def inThisBuild[T](i: Initialize[T]): Initialize[T] =
-    inScope(ThisScope.copy(project = Select(ThisBuild)), i)
+    inScope(ThisBuildScope, i)
 
   private[sbt] def inConfig[T](conf: Configuration, i: Initialize[T]): Initialize[T] =
     inScope(ThisScope.copy(config = Select(conf)), i)

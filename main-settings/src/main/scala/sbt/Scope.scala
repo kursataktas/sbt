@@ -56,6 +56,7 @@ object Scope:
 
   val ThisScope: Scope = new Scope(This, This, This, This)
   val Global: Scope = new Scope(Zero, Zero, Zero, Zero)
+  val ThisBuildScope: Scope = Scope(Select(ThisBuild), This, This, This)
   val GlobalScope: Scope = Global
 
   private[sbt] final val inIsDeprecated =
