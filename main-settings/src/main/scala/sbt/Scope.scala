@@ -14,8 +14,9 @@ import sbt.internal.util.{ AttributeKey, AttributeMap, Dag }
 import sbt.internal.util.Util._
 
 import sbt.io.IO
+import scala.collection.concurrent.TrieMap
 
-final case class Scope(
+final case class Scope private (
     project: ScopeAxis[Reference],
     config: ScopeAxis[ConfigKey],
     task: ScopeAxis[AttributeKey[?]],
@@ -25,6 +26,13 @@ final case class Scope(
   def rescope(config: ConfigKey): Scope = copy(config = Select(config))
   def rescope(task: AttributeKey[?]): Scope = copy(task = Select(task))
 
+  def copy(
+      project: ScopeAxis[Reference] = this.project,
+      config: ScopeAxis[ConfigKey] = this.config,
+      task: ScopeAxis[AttributeKey[?]] = this.task,
+      extra: ScopeAxis[AttributeMap] = this.extra
+  ): Scope = Scope(project, config, task, extra)
+
   override def toString: String = this match
     case Scope(Zero, Zero, Zero, Zero) => "Global"
     case Scope(_, _, _, This)          => s"$project / $config / $task"
@@ -32,8 +40,19 @@ final case class Scope(
 end Scope
 
 object Scope:
-  val ThisScope: Scope = Scope(This, This, This, This)
-  val Global: Scope = Scope(Zero, Zero, Zero, Zero)
+  private val uniquenessCache = TrieMap.empty[Scope, Scope]
+
+  def apply(
+      project: ScopeAxis[Reference],
+      config: ScopeAxis[ConfigKey],
+      task: ScopeAxis[AttributeKey[?]],
+      extra: ScopeAxis[AttributeMap]
+  ): Scope =
+    val scope = new Scope(project, config, task, extra)
+    uniquenessCache.getOrElseUpdate(scope, scope)
+
+  val ThisScope: Scope = new Scope(This, This, This, This)
+  val Global: Scope = new Scope(Zero, Zero, Zero, Zero)
   val GlobalScope: Scope = Global
 
   private[sbt] final val inIsDeprecated =
