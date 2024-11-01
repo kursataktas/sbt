@@ -35,6 +35,7 @@ import java.net.URI
 import java.nio.file.{ Path, Paths }
 import scala.annotation.tailrec
 import scala.collection.mutable
+import sbt.internal.util.Util
 
 private[sbt] object Load {
   // note that there is State passed in but not pulled out
@@ -266,11 +267,14 @@ private[sbt] object Load {
     }
     val projects = loaded.units
     lazy val rootEval = lazyEval(loaded.units(loaded.root).unit)
+    val settings0 = timed("Load.apply: buildConfigurations", log) {
+      buildConfigurations(loaded, getRootProject(projects), config.injectSettings)
+    }
     val settings = timed("Load.apply: finalTransforms", log) {
-      finalTransforms(buildConfigurations(loaded, getRootProject(projects), config.injectSettings))
+      finalTransforms(settings0)
     }
     val delegates = timed("Load.apply: config.delegates", log) {
-      config.delegates(loaded)
+      Util.withCaching(config.delegates(loaded))
     }
     val (cMap, data) = timed("Load.apply: Def.make(settings)...", log) {
       // When settings.size is 100000, Def.make takes around 10s.

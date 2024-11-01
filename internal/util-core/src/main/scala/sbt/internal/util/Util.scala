@@ -10,6 +10,8 @@ package sbt.internal.util
 
 import java.util.Locale
 
+import scala.collection.concurrent.TrieMap
+
 object Util {
   def makeList[T](size: Int, value: T): List[T] = List.fill(size)(value)
 
@@ -70,5 +72,10 @@ object Util {
 
   extension [A](value: A) {
     def some: Option[A] = (Some(value): Option[A])
+  }
+
+  private[sbt] def withCaching[A1, A2](f: A1 => A2): A1 => A2 = {
+    val cache = TrieMap.empty[A1, A2]
+    x => cache.getOrElseUpdate(x, f(x))
   }
 }
