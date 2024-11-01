@@ -273,33 +273,6 @@ object Scope:
 
   def showProject012Style = (ref: Reference) => Reference.display(ref) + "/"
 
-  @deprecated("No longer used", "1.1.3")
-  def transformTaskName(s: String) = {
-    val parts = s.split("-+")
-    (parts.take(1) ++ parts.drop(1).map(_.capitalize)).mkString
-  }
-
-  @deprecated("Use variant without extraInherit", "1.1.1")
-  def delegates[Proj](
-      refs: Seq[(ProjectRef, Proj)],
-      configurations: Proj => Seq[ConfigKey],
-      resolve: Reference => ResolvedReference,
-      rootProject: URI => String,
-      projectInherit: ProjectRef => Seq[ProjectRef],
-      configInherit: (ResolvedReference, ConfigKey) => Seq[ConfigKey],
-      taskInherit: AttributeKey[?] => Seq[AttributeKey[?]],
-      extraInherit: (ResolvedReference, AttributeMap) => Seq[AttributeMap]
-  ): Scope => Seq[Scope] =
-    delegates(
-      refs,
-      configurations,
-      resolve,
-      rootProject,
-      projectInherit,
-      configInherit,
-      taskInherit,
-    )
-
   // *Inherit functions should be immediate delegates and not include argument itself.  Transitivity will be provided by this method
   def delegates[Proj](
       refs: Seq[(ProjectRef, Proj)],
@@ -314,17 +287,7 @@ object Scope:
     scope => indexedDelegates(resolve, index, rootProject, taskInherit)(scope)
   }
 
-  @deprecated("Use variant without extraInherit", "1.1.1")
-  def indexedDelegates(
-      resolve: Reference => ResolvedReference,
-      index: DelegateIndex,
-      rootProject: URI => String,
-      taskInherit: AttributeKey[?] => Seq[AttributeKey[?]],
-      extraInherit: (ResolvedReference, AttributeMap) => Seq[AttributeMap]
-  )(rawScope: Scope): Seq[Scope] =
-    indexedDelegates(resolve, index, rootProject, taskInherit)(rawScope)
-
-  def indexedDelegates(
+  private def indexedDelegates(
       resolve: Reference => ResolvedReference,
       index: DelegateIndex,
       rootProject: URI => String,
@@ -390,19 +353,20 @@ object Scope:
   }
 
   private val zeroL = List(Zero)
+  private val globalL = List(GlobalScope)
+
   def withZeroAxis[T](base: ScopeAxis[T]): Seq[ScopeAxis[T]] =
-    if (base.isSelect) List(base, Zero: ScopeAxis[T])
-    else zeroL
+    if (base.isSelect) base :: zeroL else zeroL
 
   def withGlobalScope(base: Scope): Seq[Scope] =
-    if (base == GlobalScope) GlobalScope :: Nil else base :: GlobalScope :: Nil
+    if (base == GlobalScope) globalL else base :: globalL
+
   def withRawBuilds(ps: Seq[ScopeAxis[ProjectRef]]): Seq[ScopeAxis[ResolvedReference]] =
-    (ps: Seq[ScopeAxis[ResolvedReference]]) ++
-      ((ps flatMap rawBuild).distinct: Seq[ScopeAxis[ResolvedReference]]) :+
-      (Zero: ScopeAxis[ResolvedReference])
+    ps ++ ps.flatMap(rawBuild).distinct :+ Zero
 
   def rawBuild(ps: ScopeAxis[ProjectRef]): Seq[ScopeAxis[BuildRef]] = ps match {
-    case Select(ref) => Select(BuildRef(ref.build)) :: Nil; case _ => Nil
+    case Select(ref) => Select(BuildRef(ref.build)) :: Nil
+    case _           => Nil
   }
 
   def delegates[Proj](
@@ -440,19 +404,17 @@ object Scope:
   ): Seq[ScopeAxis[T]] =
     axis match {
       case Select(x)   => topologicalSort[T](x, appendZero)(inherit)
-      case Zero | This => if (appendZero) Zero :: Nil else Nil
+      case Zero | This => if (appendZero) zeroL else Nil
     }
 
   def topologicalSort[T](node: T, appendZero: Boolean)(
       dependencies: T => Seq[T]
   ): Seq[ScopeAxis[T]] = {
     val o = Dag.topologicalSortUnchecked(node)(dependencies).map(x => Select(x): ScopeAxis[T])
-    if (appendZero) o ::: (Zero: ScopeAxis[T]) :: Nil
-    else o
+    if (appendZero) o ::: zeroL else o
   }
   def globalProjectDelegates(scope: Scope): Seq[Scope] =
-    if (scope == GlobalScope)
-      GlobalScope :: Nil
+    if (scope == GlobalScope) globalL
     else
       for {
         c <- withZeroAxis(scope.config)
