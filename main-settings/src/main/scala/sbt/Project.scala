@@ -16,6 +16,7 @@ import sbt.internal.util.complete.Parser
 import sbt.internal.util.complete.DefaultParsers
 import Scope.ThisScope
 import sbt.Scope.ThisBuildScope
+import sbt.internal.util.Util
 
 sealed trait ProjectDefinition[PR <: ProjectReference] {
 
@@ -336,14 +337,8 @@ object Project:
     [a] => (k: ScopedKey[a]) => ScopedKey(f(k.scope), k.key)
 
   def transform(g: Scope => Scope, ss: Seq[Def.Setting[?]]): Seq[Def.Setting[?]] =
-    val f = mapScope(g)
-    ss.map { setting =>
-      setting.mapKey(f).mapReferenced(f)
-    }
-
-  def transformRef(g: Scope => Scope, ss: Seq[Def.Setting[?]]): Seq[Def.Setting[?]] =
-    val f = mapScope(g)
-    ss.map(_.mapReferenced(f))
+    val f = mapScope(Util.withCaching(g))
+    ss.map(_.mapKey(f).mapReferenced(f))
 
   def inThisBuild(ss: Seq[Setting[?]]): Seq[Setting[?]] =
     inScope(ThisBuildScope)(ss)
