@@ -15,6 +15,7 @@ import sbt.internal.util.Util._
 
 import sbt.io.IO
 import scala.collection.concurrent.TrieMap
+import scala.runtime.ScalaRunTime
 
 final case class Scope private (
     project: ScopeAxis[Reference],
@@ -22,6 +23,8 @@ final case class Scope private (
     task: ScopeAxis[AttributeKey[?]],
     extra: ScopeAxis[AttributeMap]
 ):
+  override val hashCode = ScalaRunTime._hashCode(this)
+
   def rescope(project: Reference): Scope = copy(project = Select(project))
   def rescope(config: ConfigKey): Scope = copy(config = Select(config))
   def rescope(task: AttributeKey[?]): Scope = copy(task = Select(task))
