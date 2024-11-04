@@ -135,11 +135,6 @@ private[sbt] object ConvertResolver {
     }
   }
 
-  /** Converts the given sbt resolver into an Ivy resolver. */
-  @deprecated("Use the variant with updateOptions", "0.13.8")
-  def apply(r: Resolver, settings: IvySettings, log: Logger): DependencyResolver =
-    apply(r, settings, UpdateOptions(), log)
-
   private[librarymanagement] val ManagedChecksums = "sbt.managedChecksums"
 
   /** Converts the given sbt resolver into an Ivy resolver. */

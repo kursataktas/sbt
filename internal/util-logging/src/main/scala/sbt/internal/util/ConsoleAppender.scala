@@ -24,19 +24,6 @@ import org.apache.logging.log4j.message.SimpleMessageFactory
 import java.util.concurrent.atomic.AtomicReference
 
 object ConsoleLogger {
-  // These are provided so other modules do not break immediately.
-  @deprecated("Use EscHelpers.ESC instead", "0.13.x")
-  final val ESC = EscHelpers.ESC
-  @deprecated("Use EscHelpers.isEscapeTerminator instead", "0.13.x")
-  private[sbt] def isEscapeTerminator(c: Char): Boolean = EscHelpers.isEscapeTerminator(c)
-  @deprecated("Use EscHelpers.hasEscapeSequence instead", "0.13.x")
-  def hasEscapeSequence(s: String): Boolean = EscHelpers.hasEscapeSequence(s)
-  @deprecated("Use EscHelpers.removeEscapeSequences instead", "0.13.x")
-  def removeEscapeSequences(s: String): String = EscHelpers.removeEscapeSequences(s)
-  @deprecated("Use ConsoleAppender.formatEnabledInEnv instead", "0.13.x")
-  lazy val formatEnabled = ConsoleAppender.formatEnabledInEnv
-  @deprecated("Use ConsoleAppender.noSuppressedMessage instead", "0.13.x")
-  val noSuppressedMessage = ConsoleAppender.noSuppressedMessage
 
   /**
    * A new `ConsoleLogger` that logs to `out`.

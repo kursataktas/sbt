@@ -27,12 +27,6 @@ object IvyRetrieve {
       }
     } yield moduleRevisionDetail(confReport, confReport.getDependency(revId))
 
-  @deprecated("Internal only. No longer in use.", "0.13.6")
-  def artifactReports(mid: ModuleID, artReport: Seq[ArtifactDownloadReport]): ModuleReport = {
-    val (resolved, missing) = artifacts(artReport)
-    ModuleReport(mid, resolved, missing)
-  }
-
   private[sbt] def artifacts(
       artReport: Seq[ArtifactDownloadReport]
   ): (Vector[(Artifact, File)], Vector[Artifact]) = {
