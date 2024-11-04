@@ -43,33 +43,6 @@ object MakePom {
 }
 class MakePom(val log: Logger) {
   import MakePom._
-  @deprecated(
-    "Use `write(Ivy, ModuleDescriptor, ModuleInfo, Option[Iterable[Configuration]], Set[String], NodeSeq, XNode => XNode, MavenRepository => Boolean, Boolean, File)` instead",
-    "0.11.2"
-  )
-  def write(
-      ivy: Ivy,
-      module: ModuleDescriptor,
-      moduleInfo: ModuleInfo,
-      configurations: Option[Iterable[Configuration]],
-      extra: NodeSeq,
-      process: XNode => XNode,
-      filterRepositories: MavenRepository => Boolean,
-      allRepositories: Boolean,
-      output: File
-  ): Unit =
-    write(
-      ivy,
-      module,
-      moduleInfo: ModuleInfo,
-      configurations: Option[Iterable[Configuration]],
-      Set(Artifact.DefaultType),
-      extra,
-      process,
-      filterRepositories,
-      allRepositories,
-      output
-    )
   def write(
       ivy: Ivy,
       module: ModuleDescriptor,
@@ -103,29 +76,6 @@ class MakePom(val log: Logger) {
     IO.write(output, "<?xml version='1.0' encoding='" + IO.utf8.name + "'?>" + newline + xmlString)
 
   def toString(node: XNode): String = new PrettyPrinter(1000, 4).format(node)
-  @deprecated(
-    "Use `toPom(Ivy, ModuleDescriptor, ModuleInfo, Option[Iterable[Configuration]], Set[String], NodeSeq, MavenRepository => Boolean, Boolean)` instead",
-    "0.11.2"
-  )
-  def toPom(
-      ivy: Ivy,
-      module: ModuleDescriptor,
-      moduleInfo: ModuleInfo,
-      configurations: Option[Iterable[Configuration]],
-      extra: NodeSeq,
-      filterRepositories: MavenRepository => Boolean,
-      allRepositories: Boolean
-  ): XNode =
-    toPom(
-      ivy,
-      module,
-      moduleInfo,
-      configurations,
-      Set(Artifact.DefaultType),
-      extra,
-      filterRepositories,
-      allRepositories
-    )
   def toPom(
       ivy: Ivy,
       module: ModuleDescriptor,
@@ -288,13 +238,6 @@ class MakePom(val log: Logger) {
     }
   val IgnoreTypes: Set[String] = Set(Artifact.SourceType, Artifact.DocType, Artifact.PomType)
 
-  @deprecated("Use `makeDependencies` variant which takes excludes", "0.13.9")
-  def makeDependencies(
-      dependencies: Seq[DependencyDescriptor],
-      includeTypes: Set[String]
-  ): NodeSeq =
-    makeDependencies(dependencies, includeTypes, Nil)
-
   def makeDependencies(
       dependencies: Seq[DependencyDescriptor],
       includeTypes: Set[String],
@@ -308,10 +251,6 @@ class MakePom(val log: Logger) {
         dependencies.map(makeDependency(_, includeTypes, excludes))
       }
       </dependencies>
-
-  @deprecated("Use `makeDependency` variant which takes excludes", "0.13.9")
-  def makeDependency(dependency: DependencyDescriptor, includeTypes: Set[String]): NodeSeq =
-    makeDependency(dependency, includeTypes, Nil)
 
   def makeDependency(
       dependency: DependencyDescriptor,
@@ -331,13 +270,6 @@ class MakePom(val log: Logger) {
     else
       NodeSeq.fromSeq(artifacts.flatMap(a => makeDependencyElem(dependency, a, excludes)))
   }
-
-  @deprecated("Use `makeDependencyElem` variant which takes excludes", "0.13.9")
-  def makeDependencyElem(
-      dependency: DependencyDescriptor,
-      artifact: DependencyArtifactDescriptor
-  ): Option[Elem] =
-    makeDependencyElem(dependency, artifact, Nil)
 
   def makeDependencyElem(
       dependency: DependencyDescriptor,
@@ -360,16 +292,6 @@ class MakePom(val log: Logger) {
     } else None
   }
 
-  @deprecated("Use `makeDependencyElem` variant which takes excludes", "0.13.9")
-  def makeDependencyElem(
-      dependency: DependencyDescriptor,
-      scope: Option[String],
-      optional: Boolean,
-      classifier: Option[String],
-      tpe: Option[String]
-  ): Elem =
-    makeDependencyElem(dependency, scope, optional, classifier, tpe, Nil)
-
   def makeDependencyElem(
       dependency: DependencyDescriptor,
       scope: Option[String],
@@ -391,14 +313,6 @@ class MakePom(val log: Logger) {
     </dependency>
   }
 
-  @deprecated("No longer used and will be removed.", "0.12.1")
-  def classifier(dependency: DependencyDescriptor, includeTypes: Set[String]): NodeSeq = {
-    val jarDep = dependency.getAllDependencyArtifacts.find(d => includeTypes(d.getType))
-    jarDep match {
-      case Some(a) => classifierElem(artifactClassifier(a))
-      case None    => NodeSeq.Empty
-    }
-  }
   def artifactType(artifact: DependencyArtifactDescriptor): Option[String] =
     Option(artifact.getType).flatMap { tpe =>
       if (tpe == "jar") None else Some(tpe)
@@ -417,11 +331,6 @@ class MakePom(val log: Logger) {
       case None    => NodeSeq.Empty
     }
 
-  @deprecated("No longer used and will be removed.", "0.12.1")
-  def scopeAndOptional(dependency: DependencyDescriptor): NodeSeq = {
-    val (scope, opt) = getScopeAndOptional(dependency.getModuleConfigurations)
-    scopeElem(scope) ++ optionalElem(opt)
-  }
   def scopeElem(scope: Option[String]): NodeSeq = scope match {
     case None | Some(Configurations.Compile.name) => NodeSeq.Empty
     case Some(s)                                  => <scope>{s}</scope>
@@ -438,9 +347,6 @@ class MakePom(val log: Logger) {
     val scope = defaultNotOptional.map(_.name)
     (scope, opt.nonEmpty)
   }
-
-  @deprecated("Use `exclusions` variant which takes excludes", "0.13.9")
-  def exclusions(dependency: DependencyDescriptor): NodeSeq = exclusions(dependency, Nil)
 
   def exclusions(dependency: DependencyDescriptor, excludes: Seq[ExcludeRule]): NodeSeq = {
     val excl = ArraySeq.unsafeWrapArray(
