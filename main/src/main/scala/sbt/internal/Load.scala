@@ -274,6 +274,8 @@ private[sbt] object Load {
       finalTransforms(settings0)
     }
     val delegates = timed("Load.apply: config.delegates", log) {
+      // We use caching to avoid creating new Scope instances too many times
+      // Creating a new Scope is CPU expensive because of the uniqueness cache
       Util.withCaching(config.delegates(loaded))
     }
     val (cMap, data) = timed("Load.apply: Def.make(settings)...", log) {

@@ -23,6 +23,8 @@ final case class Scope private (
     task: ScopeAxis[AttributeKey[?]],
     extra: ScopeAxis[AttributeMap]
 ):
+  // Since we use a uniqueness cache we can pre-compute the hashCode for free
+  // It is always going to be used at least once
   override val hashCode = ScalaRunTime._hashCode(this)
 
   def rescope(project: Reference): Scope = copy(project = Select(project))
@@ -43,6 +45,9 @@ final case class Scope private (
 end Scope
 
 object Scope:
+  // We use a global uniqueness cache to avoid duplicating Scope.
+  // At the time of writing, it divides the number of long-living instances by 15
+  // reducing the pressure on the heap, and speed up the loading.
   private val uniquenessCache = TrieMap.empty[Scope, Scope]
 
   def apply(

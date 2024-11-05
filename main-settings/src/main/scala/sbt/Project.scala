@@ -337,6 +337,8 @@ object Project:
     [a] => (k: ScopedKey[a]) => ScopedKey(f(k.scope), k.key)
 
   def transform(g: Scope => Scope, ss: Seq[Def.Setting[?]]): Seq[Def.Setting[?]] =
+    // We use caching to avoid creating new Scope instances too many times
+    // Creating a new Scope is CPU expensive because of the uniqueness cache
     val f = mapScope(Util.withCaching(g))
     ss.map(_.mapKey(f).mapReferenced(f))
 
