@@ -15,6 +15,8 @@ import sbt.internal.util.Dag
 import sbt.internal.util.complete.Parser
 import sbt.internal.util.complete.DefaultParsers
 import Scope.ThisScope
+import sbt.Scope.ThisBuildScope
+import sbt.internal.util.Util
 
 sealed trait ProjectDefinition[PR <: ProjectReference] {
 
@@ -335,20 +337,16 @@ object Project:
     [a] => (k: ScopedKey[a]) => ScopedKey(f(k.scope), k.key)
 
   def transform(g: Scope => Scope, ss: Seq[Def.Setting[?]]): Seq[Def.Setting[?]] =
-    val f = mapScope(g)
-    ss.map { setting =>
-      setting.mapKey(f).mapReferenced(f)
-    }
-
-  def transformRef(g: Scope => Scope, ss: Seq[Def.Setting[?]]): Seq[Def.Setting[?]] =
-    val f = mapScope(g)
-    ss.map(_.mapReferenced(f))
+    // We use caching to avoid creating new Scope instances too many times
+    // Creating a new Scope is CPU expensive because of the uniqueness cache
+    val f = mapScope(Util.withCaching(g))
+    ss.map(_.mapKey(f).mapReferenced(f))
 
   def inThisBuild(ss: Seq[Setting[?]]): Seq[Setting[?]] =
-    inScope(ThisScope.copy(project = Select(ThisBuild)))(ss)
+    inScope(ThisBuildScope)(ss)
 
   private[sbt] def inThisBuild[T](i: Initialize[T]): Initialize[T] =
-    inScope(ThisScope.copy(project = Select(ThisBuild)), i)
+    inScope(ThisBuildScope, i)
 
   private[sbt] def inConfig[T](conf: Configuration, i: Initialize[T]): Initialize[T] =
     inScope(ThisScope.copy(config = Select(conf)), i)

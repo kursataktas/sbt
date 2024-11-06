@@ -14,16 +14,29 @@ import sbt.internal.util.{ AttributeKey, AttributeMap, Dag }
 import sbt.internal.util.Util._
 
 import sbt.io.IO
+import scala.collection.concurrent.TrieMap
+import scala.runtime.ScalaRunTime
 
-final case class Scope(
+final case class Scope private (
     project: ScopeAxis[Reference],
     config: ScopeAxis[ConfigKey],
     task: ScopeAxis[AttributeKey[?]],
     extra: ScopeAxis[AttributeMap]
 ):
+  // Since we use a uniqueness cache we can pre-compute the hashCode for free
+  // It is always going to be used at least once
+  override val hashCode = ScalaRunTime._hashCode(this)
+
   def rescope(project: Reference): Scope = copy(project = Select(project))
   def rescope(config: ConfigKey): Scope = copy(config = Select(config))
   def rescope(task: AttributeKey[?]): Scope = copy(task = Select(task))
+
+  def copy(
+      project: ScopeAxis[Reference] = this.project,
+      config: ScopeAxis[ConfigKey] = this.config,
+      task: ScopeAxis[AttributeKey[?]] = this.task,
+      extra: ScopeAxis[AttributeMap] = this.extra
+  ): Scope = Scope(project, config, task, extra)
 
   override def toString: String = this match
     case Scope(Zero, Zero, Zero, Zero) => "Global"
@@ -32,8 +45,23 @@ final case class Scope(
 end Scope
 
 object Scope:
-  val ThisScope: Scope = Scope(This, This, This, This)
-  val Global: Scope = Scope(Zero, Zero, Zero, Zero)
+  // We use a global uniqueness cache to avoid duplicating Scope.
+  // At the time of writing, it divides the number of long-living instances by 15
+  // reducing the pressure on the heap, and speed up the loading.
+  private val uniquenessCache = TrieMap.empty[Scope, Scope]
+
+  def apply(
+      project: ScopeAxis[Reference],
+      config: ScopeAxis[ConfigKey],
+      task: ScopeAxis[AttributeKey[?]],
+      extra: ScopeAxis[AttributeMap]
+  ): Scope =
+    val scope = new Scope(project, config, task, extra)
+    uniquenessCache.getOrElseUpdate(scope, scope)
+
+  val ThisScope: Scope = new Scope(This, This, This, This)
+  val Global: Scope = new Scope(Zero, Zero, Zero, Zero)
+  val ThisBuildScope: Scope = Scope(Select(ThisBuild), This, This, This)
   val GlobalScope: Scope = Global
 
   private[sbt] final val inIsDeprecated =
@@ -250,33 +278,6 @@ object Scope:
 
   def showProject012Style = (ref: Reference) => Reference.display(ref) + "/"
 
-  @deprecated("No longer used", "1.1.3")
-  def transformTaskName(s: String) = {
-    val parts = s.split("-+")
-    (parts.take(1) ++ parts.drop(1).map(_.capitalize)).mkString
-  }
-
-  @deprecated("Use variant without extraInherit", "1.1.1")
-  def delegates[Proj](
-      refs: Seq[(ProjectRef, Proj)],
-      configurations: Proj => Seq[ConfigKey],
-      resolve: Reference => ResolvedReference,
-      rootProject: URI => String,
-      projectInherit: ProjectRef => Seq[ProjectRef],
-      configInherit: (ResolvedReference, ConfigKey) => Seq[ConfigKey],
-      taskInherit: AttributeKey[?] => Seq[AttributeKey[?]],
-      extraInherit: (ResolvedReference, AttributeMap) => Seq[AttributeMap]
-  ): Scope => Seq[Scope] =
-    delegates(
-      refs,
-      configurations,
-      resolve,
-      rootProject,
-      projectInherit,
-      configInherit,
-      taskInherit,
-    )
-
   // *Inherit functions should be immediate delegates and not include argument itself.  Transitivity will be provided by this method
   def delegates[Proj](
       refs: Seq[(ProjectRef, Proj)],
@@ -291,17 +292,7 @@ object Scope:
     scope => indexedDelegates(resolve, index, rootProject, taskInherit)(scope)
   }
 
-  @deprecated("Use variant without extraInherit", "1.1.1")
-  def indexedDelegates(
-      resolve: Reference => ResolvedReference,
-      index: DelegateIndex,
-      rootProject: URI => String,
-      taskInherit: AttributeKey[?] => Seq[AttributeKey[?]],
-      extraInherit: (ResolvedReference, AttributeMap) => Seq[AttributeMap]
-  )(rawScope: Scope): Seq[Scope] =
-    indexedDelegates(resolve, index, rootProject, taskInherit)(rawScope)
-
-  def indexedDelegates(
+  private def indexedDelegates(
       resolve: Reference => ResolvedReference,
       index: DelegateIndex,
       rootProject: URI => String,
@@ -367,19 +358,20 @@ object Scope:
   }
 
   private val zeroL = List(Zero)
+  private val globalL = List(GlobalScope)
+
   def withZeroAxis[T](base: ScopeAxis[T]): Seq[ScopeAxis[T]] =
-    if (base.isSelect) List(base, Zero: ScopeAxis[T])
-    else zeroL
+    if (base.isSelect) base :: zeroL else zeroL
 
   def withGlobalScope(base: Scope): Seq[Scope] =
-    if (base == GlobalScope) GlobalScope :: Nil else base :: GlobalScope :: Nil
+    if (base == GlobalScope) globalL else base :: globalL
+
   def withRawBuilds(ps: Seq[ScopeAxis[ProjectRef]]): Seq[ScopeAxis[ResolvedReference]] =
-    (ps: Seq[ScopeAxis[ResolvedReference]]) ++
-      ((ps flatMap rawBuild).distinct: Seq[ScopeAxis[ResolvedReference]]) :+
-      (Zero: ScopeAxis[ResolvedReference])
+    ps ++ ps.flatMap(rawBuild).distinct :+ Zero
 
   def rawBuild(ps: ScopeAxis[ProjectRef]): Seq[ScopeAxis[BuildRef]] = ps match {
-    case Select(ref) => Select(BuildRef(ref.build)) :: Nil; case _ => Nil
+    case Select(ref) => Select(BuildRef(ref.build)) :: Nil
+    case _           => Nil
   }
 
   def delegates[Proj](
@@ -417,19 +409,17 @@ object Scope:
   ): Seq[ScopeAxis[T]] =
     axis match {
       case Select(x)   => topologicalSort[T](x, appendZero)(inherit)
-      case Zero | This => if (appendZero) Zero :: Nil else Nil
+      case Zero | This => if (appendZero) zeroL else Nil
     }
 
   def topologicalSort[T](node: T, appendZero: Boolean)(
       dependencies: T => Seq[T]
   ): Seq[ScopeAxis[T]] = {
     val o = Dag.topologicalSortUnchecked(node)(dependencies).map(x => Select(x): ScopeAxis[T])
-    if (appendZero) o ::: (Zero: ScopeAxis[T]) :: Nil
-    else o
+    if (appendZero) o ::: zeroL else o
   }
   def globalProjectDelegates(scope: Scope): Seq[Scope] =
-    if (scope == GlobalScope)
-      GlobalScope :: Nil
+    if (scope == GlobalScope) globalL
     else
       for {
         c <- withZeroAxis(scope.config)
