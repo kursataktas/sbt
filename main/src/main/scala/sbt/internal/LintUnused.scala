@@ -94,7 +94,7 @@ object LintUnused {
   }
 
   def lintResultLines(
-      result: Seq[(ScopedKey[?], String, Vector[SourcePosition])]
+      result: Seq[(ScopedKey[?], String, Seq[SourcePosition])]
   ): Vector[String] = {
     import scala.collection.mutable.ListBuffer
     val buffer = ListBuffer.empty[String]
@@ -127,7 +127,7 @@ object LintUnused {
       state: State,
       includeKeys: String => Boolean,
       excludeKeys: String => Boolean
-  ): Seq[(ScopedKey[?], String, Vector[SourcePosition])] = {
+  ): Seq[(ScopedKey[?], String, Seq[SourcePosition])] = {
     val extracted = Project.extract(state)
     val structure = extracted.structure
     val display = Def.showShortKey(None) // extracted.showKey
@@ -135,17 +135,11 @@ object LintUnused {
     val cMap = Def.flattenLocals(comp)
     val used: Set[ScopedKey[?]] = cMap.values.flatMap(_.dependencies).toSet
     val unused: Seq[ScopedKey[?]] = cMap.keys.filter(!used.contains(_)).toSeq
-    val withDefinedAts: Seq[UnusedKey] = unused map { u =>
-      val definingScope = structure.data.definingScope(u.scope, u.key)
-      val definingScoped = definingScope match {
-        case Some(sc) => ScopedKey(sc, u.key)
-        case _        => u
-      }
-      val definedAt = comp.get(definingScoped) match {
-        case Some(c) => definedAtString(c.settings.toVector)
+    val withDefinedAts: Seq[UnusedKey] = unused.map { u =>
+      val data = Project.scopedKeyData(structure, u)
+      val definedAt = comp.get(data.map(_.definingKey).getOrElse(u)) match
+        case Some(c) => definedAtString(c.settings)
         case _       => Vector.empty
-      }
-      val data = Project.scopedKeyData(structure, u.scope, u.key)
       UnusedKey(u, definedAt, data)
     }
 
@@ -167,18 +161,16 @@ object LintUnused {
             && isLocallyDefined(u) =>
         u
     }
-    (unusedKeys map { u =>
-      (u.scoped, display.show(u.scoped), u.positions)
-    }).sortBy(_._2)
+    unusedKeys.map(u => (u.scoped, display.show(u.scoped), u.positions)).sortBy(_._2)
   }
 
   private case class UnusedKey(
       scoped: ScopedKey[?],
-      positions: Vector[SourcePosition],
+      positions: Seq[SourcePosition],
       data: Option[ScopedKeyData[?]]
   )
 
-  private def definedAtString(settings: Vector[Setting[?]]): Vector[SourcePosition] = {
+  private def definedAtString(settings: Seq[Setting[?]]): Seq[SourcePosition] = {
     settings flatMap { setting =>
       setting.pos match {
         case NoPosition => Vector.empty
