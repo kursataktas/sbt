@@ -376,7 +376,7 @@ private[sbt] object Load {
   ): StructureIndex = {
     val keys = Index.allKeys(settings)
     val attributeKeys = data.attributeKeys ++ keys.map(_.key)
-    val scopedKeys = (keys ++ data.keys).toVector
+    val scopedKeys = keys ++ data.keys
     val projectsMap = projects.view.mapValues(_.defined.keySet).toMap
     val configsMap: Map[String, Seq[Configuration]] =
       projects.values.flatMap(bu => bu.defined map { case (k, v) => (k, v.configurations) }).toMap
