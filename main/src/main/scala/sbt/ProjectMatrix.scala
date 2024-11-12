@@ -274,22 +274,8 @@ object ProjectMatrix {
 
     private def resolveMappings: ListMap[ProjectRow, Project] = {
       val projectIds = resolveProjectIds
-      def dirSuffix(axes: Seq[VirtualAxis]): String =
-        axes.map(_.directorySuffix).filter(_.nonEmpty).mkString("-")
       val projects =
         rows.map { r =>
-          import VirtualAxis.*
-          val axes = r.axisValues.sortBy(_.suffixOrder)
-          val scalaDirSuffix = dirSuffix(axes)
-          val nonScalaDirSuffix = dirSuffix(axes.filterNot(_.isInstanceOf[ScalaVersionAxis]))
-          val nonScalaNorPlatformDirSuffix =
-            dirSuffix(axes.filterNot(_.isInstanceOf[ScalaVersionAxis | PlatformAxis]))
-          val platform = axes
-            .collect { case pa: VirtualAxis.PlatformAxis =>
-              pa
-            }
-            .headOption
-            .getOrElse(sys.error(s"platform axis is missing in $axes"))
           val childId = projectIds(r)
           val deps = dependencies.map { resolveMatrixDependency(_, r) } ++ nonMatrixDependencies
           val aggs = aggregate.map { case ref: LocalProjectMatrix =>
@@ -303,32 +289,7 @@ object ProjectMatrix {
             .aggregate(aggs*)
             .setPlugins(plugins)
             .configs(configurations*)
-            .settings(
-              name := self.id
-            )
-            .settings(
-              r.scalaVersionOpt match {
-                case Some(sv) =>
-                  List(scalaVersion := sv)
-                case _ =>
-                  List(autoScalaLibrary := false, crossPaths := false)
-              }
-            )
-            .settings(
-              outputPath := {
-                val o = outputPath.value
-                if nonScalaNorPlatformDirSuffix.nonEmpty then s"$o/$nonScalaNorPlatformDirSuffix"
-                else o
-              },
-              sourceDirectory := base.getAbsoluteFile / "src",
-              unmanagedBase := base.getAbsoluteFile / "lib",
-              ProjectExtra.inConfig(Compile)(makeSources(nonScalaDirSuffix, scalaDirSuffix)),
-              ProjectExtra.inConfig(Test)(makeSources(nonScalaDirSuffix, scalaDirSuffix)),
-              projectDependencies := projectDependenciesTask.value,
-              virtualAxes := axes,
-              projectMatrixBaseDirectory := base,
-            )
-            .settings(self.settings)
+            .settings(baseSettings ++ rowSettings(r) ++ self.settings)
             .configure(transforms*)
 
           r -> r.process(p)
@@ -336,8 +297,10 @@ object ProjectMatrix {
       ListMap(projects*)
     }
 
+    override lazy val componentProjects: Seq[Project] = resolvedMappings.values.toList
+
     // backport of https://github.com/sbt/sbt/pull/5767
-    def projectDependenciesTask: Def.Initialize[Task[Seq[ModuleID]]] =
+    lazy val projectDependenciesTask: Def.Initialize[Task[Seq[ModuleID]]] =
       Def.task {
         val orig = projectDependencies.value
         val sbv = scalaBinaryVersion.value
@@ -363,7 +326,39 @@ object ProjectMatrix {
         }
       }
 
-    override lazy val componentProjects: Seq[Project] = resolvedMappings.values.toList
+    private lazy val noScalaLibrary: Seq[Def.Setting[?]] =
+      Seq(autoScalaLibrary := false, crossPaths := false)
+
+    private lazy val baseSettings: Seq[Def.Setting[?]] = Def.settings(
+      name := self.id,
+      sourceDirectory := base.getAbsoluteFile / "src",
+      unmanagedBase := base.getAbsoluteFile / "lib",
+      projectDependencies := projectDependenciesTask.value,
+      projectMatrixBaseDirectory := base,
+    )
+
+    private def rowSettings(r: ProjectRow): Seq[Def.Setting[?]] =
+      import VirtualAxis.*
+      val axes = r.axisValues.sortBy(_.suffixOrder)
+      def dirSuffix(axes: Seq[VirtualAxis]): String =
+        axes.map(_.directorySuffix).filter(_.nonEmpty).mkString("-")
+      val scalaDirSuffix = dirSuffix(axes)
+      val nonScalaDirSuffix = dirSuffix(axes.filterNot(_.isInstanceOf[ScalaVersionAxis]))
+      val nonScalaNorPlatformDirSuffix = dirSuffix(
+        axes.filterNot(_.isInstanceOf[ScalaVersionAxis | PlatformAxis])
+      )
+      Def.settings(
+        r.scalaVersionOpt match {
+          case Some(sv) => Seq(scalaVersion := sv)
+          case _        => noScalaLibrary
+        },
+        if nonScalaNorPlatformDirSuffix.nonEmpty then
+          Seq(outputPath ~= (o => s"$o/$nonScalaNorPlatformDirSuffix"))
+        else Seq.empty,
+        ProjectExtra.inConfig(Compile)(makeSources(nonScalaDirSuffix, scalaDirSuffix)),
+        ProjectExtra.inConfig(Test)(makeSources(nonScalaDirSuffix, scalaDirSuffix)),
+        virtualAxes := axes,
+      )
 
     private def resolveMatrixAggregate(
         other: ProjectMatrix,
