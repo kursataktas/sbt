@@ -404,7 +404,7 @@ object Index {
       case AttributeEntry(_, base: Task[?]) <- a.entries
     do
       def update(map: TriggerMap, key: AttributeKey[Seq[Task[?]]]): Unit =
-        base.info.attributes.get(key).getOrElse(Seq.empty).foreach { task =>
+        base.getOrElse(key, Seq.empty).foreach { task =>
           map(task) = base +: map.getOrElse(task, Nil)
         }
       update(runBefore, Def.runBefore)

@@ -463,10 +463,7 @@ object Tests {
       fun: TestFunction,
       tags: Seq[(Tag, Int)]
   ): Task[Map[String, SuiteResult]] = {
-    val base = Task[(String, (SuiteResult, Seq[TestTask]))](
-      Info[(String, (SuiteResult, Seq[TestTask]))]().setName(name),
-      Action.Pure(() => (name, fun.apply()), `inline` = false)
-    )
+    val base = Task(Action.Pure(() => (name, fun.apply()), `inline` = false)).setName(name)
     val taggedBase = base.tagw(tags*).tag(fun.tags.map(ConcurrentRestrictions.Tag(_))*)
     taggedBase flatMap { case (name, (result, nested)) =>
       val nestedRunnables = createNestedRunnables(loader, fun, nested)

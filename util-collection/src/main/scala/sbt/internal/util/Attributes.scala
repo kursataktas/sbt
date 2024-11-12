@@ -173,6 +173,12 @@ trait AttributeMap {
   def get[T](k: AttributeKey[T]): Option[T]
 
   /**
+   * Gets the value of type `T` associated with the key `k` or `default` if no value is associated. If
+   * a key with the same label but a different type is defined, this method will return `default`.
+   */
+  def getOrElse[T](k: AttributeKey[T], default: => T): T
+
+  /**
    * Returns this map without the mapping for `k`. This method will not remove a mapping for a key
    * with the same label but a different type.
    */
@@ -245,6 +251,8 @@ private class BasicAttributeMap(private val backing: Map[AttributeKey[?], Any])
   def isEmpty: Boolean = backing.isEmpty
   def apply[T](k: AttributeKey[T]) = backing(k).asInstanceOf[T]
   def get[T](k: AttributeKey[T]) = backing.get(k).asInstanceOf[Option[T]]
+  def getOrElse[T](k: AttributeKey[T], default: => T): T =
+    backing.getOrElse(k, default).asInstanceOf[T]
   def remove[T](k: AttributeKey[T]): AttributeMap = new BasicAttributeMap(backing - k)
   def contains[T](k: AttributeKey[T]) = backing.contains(k)
 

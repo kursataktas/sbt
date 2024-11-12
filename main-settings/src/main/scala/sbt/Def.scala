@@ -457,11 +457,11 @@ object Def extends BuildSyntax with Init[Scope] with InitializeImplicits:
         sys.error(s"Dummy task '$name' did not get converted to a full task.")
       )
       .named(name)
-    base.copy(info = base.info.set(isDummyTask, true))
+    base.set(isDummyTask, true)
   }
 
   private[sbt] def isDummy(t: Task[?]): Boolean =
-    t.info.attributes.get(isDummyTask) getOrElse false
+    t.get(isDummyTask).getOrElse(false)
 end Def
 
 sealed trait InitializeImplicits { self: Def.type =>

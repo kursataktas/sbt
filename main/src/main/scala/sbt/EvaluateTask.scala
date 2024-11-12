@@ -582,8 +582,8 @@ object EvaluateTask {
     Function.chain(
       results.toTypedSeq flatMap {
         case results.TPair(_, Result.Value(KeyValue(_, st: StateTransform))) => Some(st.transform)
-        case results.TPair(Task(info, _), Result.Value(v)) => info.post(v).get(transformState)
-        case _                                             => Nil
+        case results.TPair(Task(_, post, _), Result.Value(v)) => post(v).get(transformState)
+        case _                                                => Nil
       }
     )
 
