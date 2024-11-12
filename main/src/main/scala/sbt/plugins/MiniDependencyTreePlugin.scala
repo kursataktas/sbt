@@ -21,7 +21,7 @@ object MiniDependencyTreePlugin extends AutoPlugin {
   override def globalSettings: Seq[Def.Setting[?]] = Seq(
     dependencyTreeIncludeScalaLibrary := false
   )
-  override def projectSettings: Seq[Def.Setting[?]] =
+  override lazy val projectSettings: Seq[Def.Setting[?]] =
     DependencyTreeSettings.coreSettings ++
       inConfig(Compile)(DependencyTreeSettings.baseBasicReportingSettings) ++
       inConfig(Test)(DependencyTreeSettings.baseBasicReportingSettings)
