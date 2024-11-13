@@ -32,15 +32,13 @@ object Compiler:
       scalaProvider: ScalaProvider
   ): Def.Initialize[Task[ScalaInstance]] = Def.task {
     val allJars = scalaProvider.jars
-    val libraryJars = allJars
-      .filter { jar =>
-        (jar.getName == "scala-library.jar") || (jar.getName.startsWith(
-          "scala3-library_3"
-        ))
-      }
-    (allJars.filter { jar =>
+    val libraryJars = allJars.filter { jar =>
+      jar.getName == "scala-library.jar" || jar.getName.startsWith("scala3-library_3")
+    }
+    val compilerJar = allJars.filter { jar =>
       jar.getName == "scala-compiler.jar" || jar.getName.startsWith("scala3-compiler_3")
-    }) match
+    }
+    compilerJar match
       case Array(compilerJar) if libraryJars.nonEmpty =>
         makeScalaInstance(
           sv,
