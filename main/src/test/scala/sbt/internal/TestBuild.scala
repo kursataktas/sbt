@@ -10,7 +10,7 @@ package sbt
 package internal
 
 import Def.{ ScopedKey, Setting }
-import sbt.internal.util.{ AttributeKey, AttributeMap, Relation, Settings }
+import sbt.internal.util.{ AttributeKey, Relation }
 import sbt.internal.util.Types.{ const, some }
 import sbt.internal.util.complete.Parser
 import sbt.librarymanagement.Configuration
@@ -59,17 +59,18 @@ abstract class TestBuild {
   sealed case class Structure(
       env: Env,
       current: ProjectRef,
-      data: Settings[Scope],
+      data: Def.Settings,
       keyIndex: KeyIndex,
       keyMap: Map[String, AttributeKey[?]]
   ) {
     override def toString =
       env.toString + "\n" + "current: " + current + "\nSettings:\n\t" + showData + keyMap.keys
         .mkString("All keys:\n\t", ", ", "")
-    def showKeys(map: AttributeMap): String = map.keys.mkString("\n\t   ", ",", "\n")
+    def showKeys(keys: Iterable[AttributeKey[?]]): String = keys.mkString("\n\t   ", ",", "\n")
     def showData: String = {
       val scopeStrings =
-        for ((scope, map) <- data.data) yield (Scope.display(scope, "<key>"), showKeys(map))
+        for (scope, keys) <- data.keys.groupMap(_.scope)(_.key)
+        yield (Scope.display(scope, "<key>"), showKeys(keys))
       scopeStrings.toSeq.sorted.map(t => t._1 + t._2).mkString("\n\t")
     }
     val extra: BuildUtil[Proj] = {
@@ -86,11 +87,10 @@ abstract class TestBuild {
     }
 
     lazy val allAttributeKeys: Set[AttributeKey[?]] = {
-      val x = data.data.values.flatMap(_.keys).toSet
-      if (x.isEmpty) {
+      if (data.attributeKeys.isEmpty) {
         sys.error("allAttributeKeys is empty")
       }
-      x
+      data.attributeKeys
     }
     lazy val (taskAxes, zeroTaskAxis, onlyTaskAxis, multiTaskAxis) = {
       import collection.mutable
@@ -98,11 +98,10 @@ abstract class TestBuild {
 
       // task axis of Scope is set to Zero and the value of the second map is the original task axis
       val taskAxesMappings =
-        for ((scope, keys) <- data.data; key <- keys.keys)
-          yield (ScopedKey(scope.copy(task = Zero), key), scope.task): (
-              ScopedKey[?],
-              ScopeAxis[AttributeKey[?]]
-          )
+        for
+          (scope, keys) <- data.keys.groupMap(_.scope)(_.key)
+          key <- keys
+        yield (ScopedKey(scope.copy(task = Zero), key), scope.task)
 
       val taskAxes = Relation.empty ++ taskAxesMappings
       val zero = new HashSet[ScopedKey[?]]
@@ -240,15 +239,14 @@ abstract class TestBuild {
       }
     }
     val data = Def.makeWithCompiledMap(settings)(using env.delegates, const(Nil), display)._2
-    val keys = data.allKeys((s, key) => ScopedKey(s, key))
-    val keyMap = keys.map(k => (k.key.label, k.key)).toMap[String, AttributeKey[?]]
+    val keyMap = data.keys.map(k => (k.key.label, k.key)).toMap[String, AttributeKey[?]]
     val projectsMap = env.builds.map(b => (b.uri, b.projects.map(_.id).toSet)).toMap
     val confs = for {
       b <- env.builds
       p <- b.projects
     } yield p.id -> p.configurations
     val confMap = confs.toMap
-    Structure(env, current, data, KeyIndex(keys, projectsMap, confMap), keyMap)
+    Structure(env, current, data, KeyIndex(data.keys, projectsMap, confMap), keyMap)
   }
 
   lazy val mkEnv: Gen[Env] = {
