@@ -158,131 +158,95 @@ object AttributeKey {
  * keys with the same label but different types. Excluding this possibility is the responsibility of
  * the client if desired.
  */
-trait AttributeMap {
+opaque type AttributeMap = Map[AttributeKey[?], Any]
 
-  /**
-   * Gets the value of type `T` associated with the key `k`. If a key with the same label but
-   * different type is defined, this method will fail.
-   */
-  def apply[T](k: AttributeKey[T]): T
-
-  /**
-   * Gets the value of type `T` associated with the key `k` or `None` if no value is associated. If
-   * a key with the same label but a different type is defined, this method will return `None`.
-   */
-  def get[T](k: AttributeKey[T]): Option[T]
-
-  /**
-   * Gets the value of type `T` associated with the key `k` or `default` if no value is associated. If
-   * a key with the same label but a different type is defined, this method will return `default`.
-   */
-  def getOrElse[T](k: AttributeKey[T], default: => T): T
-
-  /**
-   * Returns this map without the mapping for `k`. This method will not remove a mapping for a key
-   * with the same label but a different type.
-   */
-  def remove[T](k: AttributeKey[T]): AttributeMap
-
-  /**
-   * Returns true if this map contains a mapping for `k`. If a key with the same label but a
-   * different type is defined in this map, this method will return `false`.
-   */
-  def contains[T](k: AttributeKey[T]): Boolean
-
-  /**
-   * Adds the mapping `k -> value` to this map, replacing any existing mapping for `k`. Any mappings
-   * for keys with the same label but different types are unaffected.
-   */
-  def put[T](k: AttributeKey[T], value: T): AttributeMap
-
-  /**
-   * All keys with defined mappings. There may be multiple keys with the same `label`, but different
-   * types.
-   */
-  def keys: Iterable[AttributeKey[?]]
-
-  /**
-   * Adds the mappings in `o` to this map, with mappings in `o` taking precedence over existing
-   * mappings.
-   */
-  def ++(o: Iterable[AttributeEntry[?]]): AttributeMap
-
-  /**
-   * Combines the mappings in `o` with the mappings in this map, with mappings in `o` taking
-   * precedence over existing mappings.
-   */
-  def ++(o: AttributeMap): AttributeMap
-
-  /**
-   * All mappings in this map. The [[AttributeEntry]] type preserves the typesafety of mappings,
-   * although the specific types are unknown.
-   */
-  def entries: Iterable[AttributeEntry[?]]
-
-  /** `true` if there are no mappings in this map, `false` if there are. */
-  def isEmpty: Boolean
-
-  /**
-   * Adds the mapping `k -> opt.get` if opt is Some. Otherwise, it returns this map without the
-   * mapping for `k`.
-   */
-  private[sbt] def setCond[T](k: AttributeKey[T], opt: Option[T]): AttributeMap
-}
-
-object AttributeMap {
-
+object AttributeMap:
   /** An [[AttributeMap]] without any mappings. */
-  val empty: AttributeMap = new BasicAttributeMap(Map.empty)
+  val empty: AttributeMap = Map.empty
 
   /** Constructs an [[AttributeMap]] containing the given `entries`. */
-  def apply(entries: Iterable[AttributeEntry[?]]): AttributeMap = empty ++ entries
+  def apply(entries: Iterable[AttributeEntry[?]]): AttributeMap = ++(empty)(entries)
 
   /** Constructs an [[AttributeMap]] containing the given `entries`. */
-  def apply(entries: AttributeEntry[?]*): AttributeMap = empty ++ entries
+  def apply(entries: AttributeEntry[?]*): AttributeMap = ++(empty)(entries)
 
-  /** Presents an `AttributeMap` as a natural transformation. */
-  // implicit def toNatTrans(map: AttributeMap): AttributeKey ~> Id = λ[AttributeKey ~> Id](map(_))
-}
+  extension (self: AttributeMap)
+    /**
+     * Gets the value of type `T` associated with the key `k`. If a key with the same label but
+     * different type is defined, this method will fail.
+     */
+    def apply[T](k: AttributeKey[T]): T = self(k).asInstanceOf[T]
 
-private class BasicAttributeMap(private val backing: Map[AttributeKey[?], Any])
-    extends AttributeMap {
+    /**
+     * Gets the value of type `T` associated with the key `k` or `None` if no value is associated. If
+     * a key with the same label but a different type is defined, this method will return `None`.
+     */
+    def get[T](k: AttributeKey[T]): Option[T] = self.get(k).asInstanceOf[Option[T]]
 
-  def isEmpty: Boolean = backing.isEmpty
-  def apply[T](k: AttributeKey[T]) = backing(k).asInstanceOf[T]
-  def get[T](k: AttributeKey[T]) = backing.get(k).asInstanceOf[Option[T]]
-  def getOrElse[T](k: AttributeKey[T], default: => T): T =
-    backing.getOrElse(k, default).asInstanceOf[T]
-  def remove[T](k: AttributeKey[T]): AttributeMap = new BasicAttributeMap(backing - k)
-  def contains[T](k: AttributeKey[T]) = backing.contains(k)
+    /**
+     * Gets the value of type `T` associated with the key `k` or `default` if no value is associated. If
+     * a key with the same label but a different type is defined, this method will return `default`.
+     */
+    def getOrElse[T](k: AttributeKey[T], default: => T): T =
+      self.getOrElse(k, default).asInstanceOf[T]
 
-  def put[T](k: AttributeKey[T], value: T): AttributeMap =
-    new BasicAttributeMap(backing.updated(k, value: Any))
+    /**
+     * Returns this map without the mapping for `k`. This method will not remove a mapping for a key
+     * with the same label but a different type.
+     */
+    def remove[T](k: AttributeKey[T]): AttributeMap = self.removed(k)
 
-  def keys: Iterable[AttributeKey[?]] = backing.keys
+    /**
+     * Returns true if this map contains a mapping for `k`. If a key with the same label but a
+     * different type is defined in this map, this method will return `false`.
+     */
+    def contains[T](k: AttributeKey[T]): Boolean = self.contains(k)
 
-  def ++(o: Iterable[AttributeEntry[?]]): AttributeMap =
-    new BasicAttributeMap(o.foldLeft(backing)((b, e) => b.updated(e.key, e.value: Any)))
+    /**
+     * Adds the mapping `k -> value` to this map, replacing any existing mapping for `k`. Any mappings
+     * for keys with the same label but different types are unaffected.
+     */
+    def put[T](k: AttributeKey[T], value: T): AttributeMap = self.updated(k, value)
 
-  def ++(o: AttributeMap): AttributeMap = o match {
-    case bam: BasicAttributeMap =>
-      new BasicAttributeMap(Map(backing.toSeq ++ bam.backing.toSeq*))
-    case _ => o ++ this
-  }
+    /**
+     * All keys with defined mappings. There may be multiple keys with the same `label`, but different
+     * types.
+     */
+    def keys: Iterable[AttributeKey[?]] = self.keys
 
-  def entries: Iterable[AttributeEntry[?]] =
-    backing.collect { case (k: AttributeKey[kt], v) =>
-      AttributeEntry(k, v.asInstanceOf[kt])
-    }
+    /**
+     * Adds the mappings in `o` to this map, with mappings in `o` taking precedence over existing
+     * mappings.
+     */
+    def ++(o: Iterable[AttributeEntry[?]]): AttributeMap =
+      o.foldLeft(self)((b, e) => b.updated(e.key, e.value))
 
-  private[sbt] def setCond[T](k: AttributeKey[T], opt: Option[T]): AttributeMap =
-    opt match {
-      case Some(v) => put(k, v)
-      case None    => remove(k)
-    }
+    /**
+     * Combines the mappings in `o` with the mappings in this map, with mappings in `o` taking
+     * precedence over existing mappings.
+     */
+    def ++(o: AttributeMap): AttributeMap = self ++ o
 
-  override def toString = entries.mkString("(", ", ", ")")
-}
+    /**
+     * All mappings in this map. The [[AttributeEntry]] type preserves the typesafety of mappings,
+     * although the specific types are unknown.
+     */
+    def entries: Iterable[AttributeEntry[?]] =
+      self.collect { case (k: AttributeKey[x], v) => AttributeEntry(k, v.asInstanceOf[x]) }
+
+    /** `true` if there are no mappings in this map, `false` if there are. */
+    def isEmpty: Boolean = self.isEmpty
+
+    /**
+     * Adds the mapping `k -> opt.get` if opt is Some. Otherwise, it returns this map without the
+     * mapping for `k`.
+     */
+    private[sbt] def setCond[T](k: AttributeKey[T], opt: Option[T]): AttributeMap =
+      opt match
+        case Some(v) => self.updated(k, v)
+        case None    => self.removed(k)
+  end extension
+end AttributeMap
 
 /**
  * An immutable map where both key and value are String.
