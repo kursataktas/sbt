@@ -351,17 +351,6 @@ object BuildUtilLite:
 end BuildUtilLite
 
 object Index {
-  def taskToKeyMap(data: Settings[Scope]): Map[Task[?], ScopedKey[Task[?]]] = {
-
-    val pairs = data.scopes flatMap (scope =>
-      data.data(scope).entries collect { case AttributeEntry(key, value: Task[_]) =>
-        (value, ScopedKey(scope, key.asInstanceOf[AttributeKey[Task[?]]]))
-      }
-    )
-
-    pairs.toMap[Task[?], ScopedKey[Task[?]]]
-  }
-
   def allKeys(settings: Seq[Setting[?]]): Set[ScopedKey[?]] = {
     val result = new java.util.HashSet[ScopedKey[?]]
     settings.foreach { s =>

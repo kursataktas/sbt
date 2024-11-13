@@ -384,7 +384,6 @@ private[sbt] object Load {
     val aggIndex = KeyIndex.aggregate(scopedKeys.toVector, extra(keyIndex), projectsMap, configsMap)
     new StructureIndex(
       Index.stringToKeyMap(attributeKeys),
-      Index.taskToKeyMap(data),
       Index.triggers(data),
       keyIndex,
       aggIndex
