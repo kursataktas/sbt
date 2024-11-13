@@ -154,10 +154,9 @@ object Previous {
 
   /** Public as a macro implementation detail.  Do not call directly. */
   def runtime[T](skey: TaskKey[T])(implicit format: JsonFormat[T]): Initialize[Task[Option[T]]] = {
-    val inputs = (Global / cache)
-      .zip(Def.validated(skey, selfRefOk = true))
-      .zip(Global / references)
-    inputs { case ((prevTask, resolved), refs) =>
+    type Inputs = (Task[Previous], ScopedKey[Task[T]], References)
+    val inputs = (Global / cache, Def.validated(skey, selfRefOk = true), Global / references)
+    Def.app[Inputs, Task[Option[T]]](inputs) { case (prevTask, resolved, refs) =>
       val key = Key(resolved, resolved)
       refs.recordReference(key, format) // always evaluated on project load
       prevTask.map(_.get(key)) // evaluated if this task is evaluated
@@ -168,14 +167,17 @@ object Previous {
   def runtimeInEnclosingTask[T](skey: TaskKey[T])(implicit
       format: JsonFormat[T]
   ): Initialize[Task[Option[T]]] = {
-    val inputs = (Global / cache)
-      .zip(Def.validated(skey, selfRefOk = true))
-      .zip(Global / references)
-      .zip(Def.resolvedScoped)
-    inputs { case (((prevTask, resolved), refs), inTask) =>
+    type Inputs = (Task[Previous], ScopedKey[Task[T]], References, ScopedKey[?])
+    val inputs = (
+      Global / cache,
+      Def.validated(skey, selfRefOk = true),
+      Global / references,
+      Def.resolvedScoped
+    )
+    Def.app[Inputs, Task[Option[T]]](inputs) { case (prevTask, resolved, refs, inTask) =>
       val key = Key(resolved, inTask.asInstanceOf[ScopedKey[Task[Any]]])
       refs.recordReference(key, format) // always evaluated on project load
-      prevTask.map(_.get(key)) // evaluated if this task is evaluated
+      prevTask.map(_.get(key))
     }
   }
 }
