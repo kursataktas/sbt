@@ -17,7 +17,7 @@ import sbt.internal.util.Types.*
 
 object Transform:
   def fromDummy[A](original: Task[A])(action: => A): Task[A] =
-    original.copy(work = Action.Pure(() => action, false))
+    new Task(original.attributes, original.post, work = Action.Pure(() => action, false))
 
   def fromDummyStrict[T](original: Task[T], value: T): Task[T] = fromDummy(original)(value)
 
@@ -57,8 +57,8 @@ object Transform:
         case Join(in, f)         => uniform(in)(f)
 
       def inline1[T](t: TaskId[T]): Option[() => T] = t match
-        case Task(_, _, Action.Pure(eval, true)) => Some(eval)
-        case _                                   => None
+        case Task(Action.Pure(eval, true)) => Some(eval)
+        case _                             => None
 
   def uniform[A1, D](tasks: Seq[Task[D]])(
       f: Seq[Result[D]] => Either[Task[A1], A1]

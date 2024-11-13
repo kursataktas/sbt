@@ -16,21 +16,25 @@ import sbt.util.Monad
 /**
  * Combines metadata `attributes` and a computation `work` to define a task.
  */
-final case class Task[A](attributes: AttributeMap, post: A => AttributeMap, work: Action[A])
-    extends TaskId[A]:
+final class Task[A](
+    val attributes: AttributeMap,
+    val post: A => AttributeMap,
+    val work: Action[A]
+) extends TaskId[A]:
   override def toString = name.getOrElse(s"Task($attributes)")
-  override def hashCode = (attributes, post).hashCode
 
-  def name = attributes.get(Task.Name)
-  def description = attributes.get(Task.Description)
+  def name: Option[String] = get(Task.Name)
+  def description: Option[String] = get(Task.Description)
   def get[B](key: AttributeKey[B]): Option[B] = attributes.get(key)
   def getOrElse[B](key: AttributeKey[B], default: => B): B = attributes.getOrElse(key, default)
 
   def setName(name: String): Task[A] = set(Task.Name, name)
   def setDescription(description: String): Task[A] = set(Task.Description, description)
-  def set[A](key: AttributeKey[A], value: A) = copy(attributes = this.attributes.put(key, value))
+  def set[B](key: AttributeKey[B], value: B) =
+    new Task(attributes.put(key, value), post, work)
 
-  def postTransform(f: (A, AttributeMap) => AttributeMap): Task[A] = copy(post = a => f(a, post(a)))
+  def postTransform(f: (A, AttributeMap) => AttributeMap): Task[A] =
+    new Task(attributes, a => f(a, post(a)), work)
 
   def tag(tags: Tag*): Task[A] = tagw(tags.map(t => (t, 1))*)
   def tagw(tags: (Tag, Int)*): Task[A] =
@@ -48,6 +52,8 @@ object Task:
 
   def apply[A](attributes: AttributeMap, work: Action[A]): Task[A] =
     new Task[A](attributes, defaultAttributeMap, work)
+
+  def unapply[A](task: Task[A]): Option[Action[A]] = Some(task.work)
 
   val Name = AttributeKey[String]("name")
   val Description = AttributeKey[String]("description")
