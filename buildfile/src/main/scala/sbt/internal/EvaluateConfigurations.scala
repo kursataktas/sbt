@@ -344,11 +344,6 @@ object BuildUtilLite:
 end BuildUtilLite
 
 object Index {
-  def taskToKeyMap(data: Settings): Map[Task[?], ScopedKey[Task[?]]] =
-    data.data.collect { case (key, value: Task[?]) =>
-      (value, key.asInstanceOf[ScopedKey[Task[?]]])
-    }
-
   def allKeys(settings: Seq[Setting[?]]): Set[ScopedKey[?]] = {
     val result = new java.util.HashSet[ScopedKey[?]]
     settings.foreach { s =>
@@ -385,7 +380,7 @@ object Index {
     val triggeredBy = new TriggerMap
     ss.values.collect { case base: Task[?] =>
       def update(map: TriggerMap, key: AttributeKey[Seq[Task[?]]]): Unit =
-        base.info.attributes.get(key).getOrElse(Seq.empty).foreach { task =>
+        base.getOrElse(key, Seq.empty).foreach { task =>
           map(task) = base +: map.getOrElse(task, Nil)
         }
       update(runBefore, Def.runBefore)

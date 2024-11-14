@@ -112,7 +112,7 @@ private[sbt] abstract class AbstractTaskExecuteProgress extends ExecuteProgress 
   }
   private def taskName0(t: TaskId[?]): String = {
     def definedName(node: Task[?]): Option[String] =
-      node.info.name.orElse(TaskName.transformNode(node).map(showScopedKey.show))
+      node.name.orElse(TaskName.transformNode(node).map(showScopedKey.show))
     def inferredName(t: Task[?]): Option[String] = nameDelegate(t) map taskName
     def nameDelegate(t: Task[?]): Option[TaskId[?]] =
       Option(anonOwners.get(t)).orElse(Option(calledBy.get(t)))

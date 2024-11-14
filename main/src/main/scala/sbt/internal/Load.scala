@@ -366,7 +366,7 @@ private[sbt] object Load {
   }
 
   def setDefinitionKey[T](tk: Task[T], key: ScopedKey[?]): Task[T] =
-    if (isDummy(tk)) tk else Task(tk.info.set(Keys.taskDefinitionKey, key), tk.work)
+    if (isDummy(tk)) tk else tk.set(Keys.taskDefinitionKey, key)
 
   def structureIndex(
       data: Def.Settings,
@@ -384,7 +384,6 @@ private[sbt] object Load {
     val aggIndex = KeyIndex.aggregate(scopedKeys, extra(keyIndex), projectsMap, configsMap)
     new StructureIndex(
       Index.stringToKeyMap(attributeKeys),
-      Index.taskToKeyMap(data),
       Index.triggers(data),
       keyIndex,
       aggIndex

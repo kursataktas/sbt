@@ -71,7 +71,6 @@ final class BuildStructure(
 // information that is not original, but can be reconstructed from the rest of BuildStructure
 final class StructureIndex(
     val keyMap: Map[String, AttributeKey[?]],
-    val taskToKey: Map[Task[?], ScopedKey[Task[?]]],
     val triggers: Triggers,
     val keyIndex: KeyIndex,
     val aggregateKeyIndex: KeyIndex,

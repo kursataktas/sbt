@@ -384,7 +384,7 @@ object Scoped:
       ): Initialize[Task[A1]] =
         Initialize
           .joinAny[Task](coerceToAnyTaskSeq(tasks))
-          .zipWith(init)((ts, i) => i.copy(info = i.info.set(key, ts)))
+          .zipWith(init)((ts, i) => i.set(key, ts))
 
     extension [A1](init: Initialize[InputTask[A1]])
       @targetName("onTaskInitializeInputTask")

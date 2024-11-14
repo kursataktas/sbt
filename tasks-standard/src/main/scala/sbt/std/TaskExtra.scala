@@ -103,7 +103,7 @@ trait TaskExtra0 {
     joinTasks0[Any](existToAny(in))
   private[sbt] def joinTasks0[S](in: Seq[Task[S]]): JoinTask[S, Seq] = new JoinTask[S, Seq] {
     def join: Task[Seq[S]] =
-      Task[Seq[S]](Info(), Action.Join(in, (s: Seq[Result[S]]) => Right(TaskExtra.all(s))))
+      Task[Seq[S]](Action.Join(in, (s: Seq[Result[S]]) => Right(TaskExtra.all(s))))
     def reduced(f: (S, S) => S): Task[S] = TaskExtra.reduced(in.toIndexedSeq, f)
   }
   private[sbt] def existToAny(in: Seq[Task[?]]): Seq[Task[Any]] = in.asInstanceOf[Seq[Task[Any]]]
@@ -114,8 +114,8 @@ trait TaskExtra extends TaskExtra0 {
   final def constant[T](t: T): Task[T] = task(t)
 
   final def task[T](f: => T): Task[T] = toTask(() => f)
-  final implicit def toTask[T](f: () => T): Task[T] = Task(Info(), Action.Pure(f, false))
-  final def inlineTask[T](value: T): Task[T] = Task(Info(), Action.Pure(() => value, true))
+  final implicit def toTask[T](f: () => T): Task[T] = Task(Action.Pure(f, false))
+  final def inlineTask[T](value: T): Task[T] = Task(Action.Pure(() => value, true))
 
   final implicit def upcastTask[A >: B, B](t: Task[B]): Task[A] = t mapN { x =>
     x: A
@@ -131,7 +131,7 @@ trait TaskExtra extends TaskExtra0 {
 
   final implicit def joinTasks[S](in: Seq[Task[S]]): JoinTask[S, Seq] = new JoinTask[S, Seq] {
     def join: Task[Seq[S]] =
-      Task[Seq[S]](Info(), Action.Join(in, (s: Seq[Result[S]]) => Right(TaskExtra.all(s))))
+      Task[Seq[S]](Action.Join(in, (s: Seq[Result[S]]) => Right(TaskExtra.all(s))))
     def reduced(f: (S, S) => S): Task[S] = TaskExtra.reduced(in.toIndexedSeq, f)
   }
 
@@ -144,18 +144,18 @@ trait TaskExtra extends TaskExtra0 {
   final implicit def multInputTask[Tup <: Tuple](tasks: Tuple.Map[Tup, Task]): MultiInTask[Tup] =
     new MultiInTask[Tup]:
       override def flatMapN[A](f: Tup => Task[A]): Task[A] =
-        Task(Info(), Action.FlatMapped(tasks, f.compose(allM)))
+        Task(Action.FlatMapped(tasks, f.compose(allM)))
       override def flatMapR[A](f: Tuple.Map[Tup, Result] => Task[A]): Task[A] =
-        Task(Info(), Action.FlatMapped(tasks, f))
+        Task(Action.FlatMapped(tasks, f))
 
       override def mapN[A](f: Tup => A): Task[A] =
-        Task(Info(), Action.Mapped(tasks, f.compose(allM)))
+        Task(Action.Mapped(tasks, f.compose(allM)))
       override def mapR[A](f: Tuple.Map[Tup, Result] => A): Task[A] =
-        Task(Info(), Action.Mapped(tasks, f))
+        Task(Action.Mapped(tasks, f))
       override def flatFailure[A](f: Seq[Incomplete] => Task[A]): Task[A] =
-        Task(Info(), Action.FlatMapped(tasks, f.compose(anyFailM)))
+        Task(Action.FlatMapped(tasks, f.compose(anyFailM)))
       override def mapFailure[A](f: Seq[Incomplete] => A): Task[A] =
-        Task(Info(), Action.Mapped(tasks, f.compose(anyFailM)))
+        Task(Action.Mapped(tasks, f.compose(anyFailM)))
 
   final implicit def singleInputTask[S](in: Task[S]): SingleInTask[S] =
     new SingleInTask[S]:
@@ -164,21 +164,22 @@ trait TaskExtra extends TaskExtra0 {
       def failure: Task[Incomplete] = mapFailure(identity)
       def result: Task[Result[S]] = mapR(identity)
 
-      private def newInfo[A]: Info[A] = TaskExtra.newInfo(in.info)
+      private def newAttributes: AttributeMap = TaskExtra.newAttributes(in.attributes)
 
       override def flatMapR[A](f: Result[S] => Task[A]): Task[A] =
         Task(
-          newInfo,
+          newAttributes,
           Action.FlatMapped[A, Tuple1[S]](Tuple1(in), { case Tuple1(a) => f(a) })
         )
 
       override def mapR[A](f: Result[S] => A): Task[A] =
         Task(
-          newInfo,
+          newAttributes,
           Action.Mapped[A, Tuple1[S]](Tuple1(in), { case Tuple1(a) => f(a) })
         )
 
-      override def dependsOn(tasks: Task[?]*): Task[S] = Task(newInfo, Action.DependsOn(in, tasks))
+      override def dependsOn(tasks: Task[?]*): Task[S] =
+        Task(newAttributes, Action.DependsOn(in, tasks))
 
       override def flatMapN[T](f: S => Task[T]): Task[T] = flatMapR(f.compose(successM))
 
@@ -206,8 +207,8 @@ trait TaskExtra extends TaskExtra0 {
       def &&[T](alt: Task[T]): Task[T] = flatMapN(_ => alt)
 
   final implicit def toTaskInfo[S](in: Task[S]): TaskInfo[S] = new TaskInfo[S] {
-    def describedAs(s: String): Task[S] = in.copy(info = in.info.setDescription(s))
-    def named(s: String): Task[S] = in.copy(info = in.info.setName(s))
+    def describedAs(s: String): Task[S] = in.setDescription(s)
+    def named(s: String): Task[S] = in.setName(s)
   }
 
   final implicit def pipeToProcess[Key](
@@ -327,10 +328,10 @@ object TaskExtra extends TaskExtra {
   def incompleteDeps(incs: Seq[Incomplete]): Incomplete = Incomplete(None, causes = incs)
 
   def select[A, B](fab: Task[Either[A, B]], f: Task[A => B]): Task[B] =
-    Task(newInfo(fab.info), Action.Selected[A, B](fab, f))
+    Task(newAttributes(fab.attributes), Action.Selected[A, B](fab, f))
 
   // The "taskDefinitionKey" is used, at least, by the ".previous" functionality.
   // But apparently it *cannot* survive a task map/flatMap/etc. See actions/depends-on.
-  private[sbt] def newInfo[A](info: Info[?]): Info[A] =
-    Info[A](AttributeMap(info.attributes.entries.filter(_.key.label != "taskDefinitionKey")))
+  private[sbt] def newAttributes[A](attributes: AttributeMap): AttributeMap =
+    AttributeMap(attributes.entries.filter(_.key.label != "taskDefinitionKey"))
 }
