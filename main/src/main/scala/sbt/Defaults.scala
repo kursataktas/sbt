@@ -691,7 +691,7 @@ object Defaults extends BuildCommon {
       }
       else topLoader
     },
-    scalaInstance := scalaInstanceTask.value,
+    scalaInstance := Compiler.scalaInstanceTask.value,
     crossVersion := (if (crossPaths.value) CrossVersion.binary else CrossVersion.disabled),
     pluginCrossBuild / sbtBinaryVersion := binarySbtVersion(
       (pluginCrossBuild / sbtVersion).value
@@ -1115,40 +1115,6 @@ object Defaults extends BuildCommon {
       }
     }
 
-  def scalaInstanceTask: Initialize[Task[ScalaInstance]] =
-    Def.taskDyn {
-      val sh = Keys.scalaHome.value
-      val app = appConfiguration.value
-      val sv = scalaVersion.value
-      sh match
-        case Some(h) => scalaInstanceFromHome(h)
-        case _ =>
-          val scalaProvider = app.provider.scalaProvider
-          if sv == scalaProvider.version then
-            // use the same class loader as the Scala classes used by sbt
-            Def.task {
-              val allJars = scalaProvider.jars
-              val libraryJars = allJars.filter { jar =>
-                jar.getName == "scala-library.jar" || jar.getName.startsWith("scala3-library_3")
-              }
-              val compilerJar = allJars.filter { jar =>
-                jar.getName == "scala-compiler.jar" || jar.getName.startsWith("scala3-compiler_3")
-              }
-              compilerJar match
-                case Array(compilerJar) if libraryJars.nonEmpty =>
-                  makeScalaInstance(
-                    sv,
-                    libraryJars,
-                    allJars.toSeq,
-                    Seq.empty,
-                    state.value,
-                    scalaInstanceTopLoader.value
-                  )
-                case _ => ScalaInstance(sv, scalaProvider)
-            }
-          else scalaInstanceFromUpdate
-    }
-
   // Returns the ScalaInstance only if it was not constructed via `update`
   //  This is necessary to prevent cycles between `update` and `scalaInstance`
   private[sbt] def unmanagedScalaInstanceOnly: Initialize[Task[Option[ScalaInstance]]] =
@@ -1156,141 +1122,6 @@ object Defaults extends BuildCommon {
       if h.isDefined then Def.task(Some(scalaInstance.value))
       else Def.task(None)
     }
-
-  private def noToolConfiguration(autoInstance: Boolean): String = {
-    val pre = "Missing Scala tool configuration from the 'update' report.  "
-    val post =
-      if (autoInstance)
-        "'scala-tool' is normally added automatically, so this may indicate a bug in sbt or you may be removing it from ivyConfigurations, for example."
-      else
-        "Explicitly define scalaInstance or scalaHome or include Scala dependencies in the 'scala-tool' configuration."
-    pre + post
-  }
-
-  def scalaInstanceFromUpdate: Initialize[Task[ScalaInstance]] = Def.task {
-    val sv = scalaVersion.value
-    val fullReport = update.value
-
-    // For Scala 3, update scala-library.jar in `scala-tool` and `scala-doc-tool` in case a newer version
-    // is present in the `compile` configuration. This is needed once forwards binary compatibility is dropped
-    // to avoid NoSuchMethod exceptions when expanding macros.
-    def updateLibraryToCompileConfiguration(report: ConfigurationReport) =
-      if (!ScalaArtifacts.isScala3(sv)) report
-      else
-        (for {
-          compileConf <- fullReport.configuration(Configurations.Compile)
-          compileLibMod <- compileConf.modules.find(_.module.name == ScalaArtifacts.LibraryID)
-          reportLibMod <- report.modules.find(_.module.name == ScalaArtifacts.LibraryID)
-          if VersionNumber(reportLibMod.module.revision)
-            .matchesSemVer(SemanticSelector(s"<${compileLibMod.module.revision}"))
-        } yield {
-          val newMods = report.modules
-            .filterNot(_.module.name == ScalaArtifacts.LibraryID) :+ compileLibMod
-          report.withModules(newMods)
-        }).getOrElse(report)
-
-    val toolReport = updateLibraryToCompileConfiguration(
-      fullReport
-        .configuration(Configurations.ScalaTool)
-        .getOrElse(sys.error(noToolConfiguration(managedScalaInstance.value)))
-    )
-
-    if (Classpaths.isScala213(sv)) {
-      for {
-        compileReport <- fullReport.configuration(Configurations.Compile)
-        libName <- ScalaArtifacts.Artifacts
-      } {
-        for (lib <- compileReport.modules.find(_.module.name == libName)) {
-          val libVer = lib.module.revision
-          val n = name.value
-          if (VersionNumber(sv).matchesSemVer(SemanticSelector(s"<$libVer")))
-            sys.error(
-              s"""expected `$n/scalaVersion` to be "$libVer" or later,
-                 |but found "$sv"; upgrade scalaVersion to fix the build.
-                 |
-                 |to support backwards-only binary compatibility (SIP-51),
-                 |the Scala 2.13 compiler cannot be older than $libName on the
-                 |dependency classpath.
-                 |see `$n/evicted` to know why $libName $libVer is getting pulled in.
-                 |""".stripMargin
-            )
-        }
-      }
-    }
-    def file(id: String): File = {
-      val files = for {
-        m <- toolReport.modules if m.module.name.startsWith(id)
-        (art, file) <- m.artifacts if art.`type` == Artifact.DefaultType
-      } yield file
-      files.headOption getOrElse sys.error(s"Missing $id jar file")
-    }
-
-    val allCompilerJars = toolReport.modules.flatMap(_.artifacts.map(_._2))
-    val allDocJars =
-      fullReport
-        .configuration(Configurations.ScalaDocTool)
-        .map(updateLibraryToCompileConfiguration)
-        .toSeq
-        .flatMap(_.modules)
-        .flatMap(_.artifacts.map(_._2))
-    val libraryJars = ScalaArtifacts.libraryIds(sv).map(file)
-
-    makeScalaInstance(
-      sv,
-      libraryJars,
-      allCompilerJars,
-      allDocJars,
-      state.value,
-      scalaInstanceTopLoader.value,
-    )
-  }
-  def makeScalaInstance(
-      version: String,
-      libraryJars: Array[File],
-      allCompilerJars: Seq[File],
-      allDocJars: Seq[File],
-      state: State,
-      topLoader: ClassLoader,
-  ): ScalaInstance = {
-    val classLoaderCache = state.extendedClassLoaderCache
-    val compilerJars = allCompilerJars.filterNot(libraryJars.contains).distinct.toArray
-    val docJars = allDocJars
-      .filterNot(jar => libraryJars.contains(jar) || compilerJars.contains(jar))
-      .distinct
-      .toArray
-    val allJars = libraryJars ++ compilerJars ++ docJars
-
-    val libraryLoader = classLoaderCache(libraryJars.toList, topLoader)
-    val compilerLoader = classLoaderCache(compilerJars.toList, libraryLoader)
-    val fullLoader =
-      if (docJars.isEmpty) compilerLoader
-      else classLoaderCache(docJars.distinct.toList, compilerLoader)
-    new ScalaInstance(
-      version = version,
-      loader = fullLoader,
-      loaderCompilerOnly = compilerLoader,
-      loaderLibraryOnly = libraryLoader,
-      libraryJars = libraryJars,
-      compilerJars = compilerJars,
-      allJars = allJars,
-      explicitActual = Some(version)
-    )
-  }
-  def scalaInstanceFromHome(dir: File): Initialize[Task[ScalaInstance]] = Def.task {
-    val dummy = ScalaInstance(dir)(state.value.classLoaderCache.apply)
-    Seq(dummy.loader, dummy.loaderLibraryOnly).foreach {
-      case a: AutoCloseable => a.close()
-      case _                =>
-    }
-    makeScalaInstance(
-      dummy.version,
-      dummy.libraryJars,
-      dummy.compilerJars.toSeq,
-      dummy.allJars.toSeq,
-      state.value,
-      scalaInstanceTopLoader.value,
-    )
-  }
 
   private def testDefaults =
     Defaults.globalDefaults(
@@ -2288,10 +2119,6 @@ object Defaults extends BuildCommon {
               val options = sOpts ++ Opts.doc.externalAPI(xapisFiles)
               val scalac = cs.scalac match
                 case ac: AnalyzingCompiler => ac.onArgs(exported(s, "scaladoc"))
-              def isScala3Doc(module: ModuleID): Boolean = {
-                module.configurations.exists(_.startsWith(Configurations.ScalaDocTool.name)) &&
-                module.name == ScalaArtifacts.Scala3DocID
-              }
               val docSrcFiles = if ScalaArtifacts.isScala3(sv) then tFiles else srcs
               // todo: cache this
               if docSrcFiles.nonEmpty then
@@ -3641,14 +3468,11 @@ object Classpaths {
       val extResolvers = externalResolvers.value
       val isScala3M123 = ScalaArtifacts.isScala3M123(version)
       val allToolDeps =
-        if (
-          scalaHome.value.isDefined || scalaModuleInfo.value.isEmpty || !managedScalaInstance.value
-        )
-          Nil
-        else if (!isScala3M123 || extResolvers.contains(Resolver.JCenterRepository)) {
+        if scalaHome.value.isDefined || scalaModuleInfo.value.isEmpty || !managedScalaInstance.value
+        then Nil
+        else
           ScalaArtifacts.toolDependencies(sbtOrg, version) ++
             ScalaArtifacts.docToolDependencies(sbtOrg, version)
-        } else ScalaArtifacts.toolDependencies(sbtOrg, version)
       allToolDeps.map(_.platform(Platform.jvm)) ++ pluginAdjust
     },
     // in case of meta build, exclude all sbt modules from the dependency graph, so we can use the sbt resolved by the launcher

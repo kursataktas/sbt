@@ -1,5 +1,5 @@
 autoScalaLibrary := false
-scalaVersion := "3.0.0-M2"
+scalaVersion := "3.3.4"
 libraryDependencies += "com.chuusai" % "shapeless_2.13" % "2.3.3"
 
 val checkScalaLibrary = TaskKey[Unit]("checkScalaLibrary")
