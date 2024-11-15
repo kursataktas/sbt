@@ -145,7 +145,7 @@ private[sbt] object Settings {
    * @return the setting with the task definition
    */
   private def addTaskDefinition[T](setting: Def.Setting[Task[T]]): Def.Setting[Task[T]] =
-    setting.mapInit((sk, task) => Task(task.info.set(taskDefinitionKey, sk), task.work))
+    setting.mapInit((sk, task) => task.set(taskDefinitionKey, sk))
 
   /**
    * Returns all of the paths described by a glob along with their basic file attributes.

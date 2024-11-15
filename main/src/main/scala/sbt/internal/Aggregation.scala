@@ -11,7 +11,7 @@ package internal
 
 import java.text.DateFormat
 
-import sbt.Def.ScopedKey
+import sbt.Def.{ ScopedKey, Settings }
 import sbt.Keys.{ showSuccess, showTiming, timingFormat }
 import sbt.ProjectExtra.*
 import sbt.SlashSyntax0.given
@@ -157,7 +157,7 @@ object Aggregation {
   private def timingString(
       startTime: Long,
       endTime: Long,
-      data: Settings[Scope],
+      data: Settings,
       currentRef: ProjectRef,
   ): String = {
     val format = (currentRef / timingFormat).get(data) getOrElse defaultFormat
@@ -266,29 +266,40 @@ object Aggregation {
       else extra.aggregates.forward(ref)
     }
 
+  /**
+   * Compute the reverse aggregate keys of all the `keys` at once.
+   * This is more performant than computing the revere aggregate keys of each key individually
+   * because of the duplicates. One aggregate key is the aggregation of many keys.
+   */
+  def reverseAggregate[Proj](
+      keys: Set[ScopedKey[?]],
+      extra: BuildUtil[Proj],
+  ): Iterable[ScopedKey[?]] =
+    val mask = ScopeMask()
+    def recur(keys: Set[ScopedKey[?]], acc: Set[ScopedKey[?]]): Set[ScopedKey[?]] =
+      if keys.isEmpty then acc
+      else
+        val aggKeys = for
+          key <- keys
+          ref <- projectAggregates(key.scope.project.toOption, extra, reverse = true)
+          toResolve = key.scope.copy(project = Select(ref))
+          resolved = Resolve(extra, Zero, key.key, mask)(toResolve)
+          scoped = ScopedKey(resolved, key.key)
+          if !acc.contains(scoped)
+        yield scoped
+        val filteredAggKeys = aggKeys.filter(aggregationEnabled(_, extra.data))
+        // recursive because an aggregate project can be aggregated in another aggregate project
+        recur(filteredAggKeys, acc ++ filteredAggKeys)
+    recur(keys, keys)
+
   def aggregate[A1, Proj](
       key: ScopedKey[A1],
       rawMask: ScopeMask,
-      extra: BuildUtil[Proj],
-      reverse: Boolean = false
+      extra: BuildUtil[Proj]
   ): Seq[ScopedKey[A1]] =
     val mask = rawMask.copy(project = true)
     Dag.topologicalSort(key): (k) =>
-      if reverse then reverseAggregatedKeys(k, extra, mask)
-      else if aggregationEnabled(k, extra.data) then aggregatedKeys(k, extra, mask)
-      else Nil
-
-  def reverseAggregatedKeys[T](
-      key: ScopedKey[T],
-      extra: BuildUtil[?],
-      mask: ScopeMask
-  ): Seq[ScopedKey[T]] =
-    projectAggregates(key.scope.project.toOption, extra, reverse = true) flatMap { ref =>
-      val toResolve = key.scope.copy(project = Select(ref))
-      val resolved = Resolve(extra, Zero, key.key, mask)(toResolve)
-      val skey = ScopedKey(resolved, key.key)
-      if (aggregationEnabled(skey, extra.data)) skey :: Nil else Nil
-    }
+      if aggregationEnabled(k, extra.data) then aggregatedKeys(k, extra, mask) else Nil
 
   def aggregatedKeys[T](
       key: ScopedKey[T],
@@ -301,7 +312,7 @@ object Aggregation {
       ScopedKey(resolved, key.key)
     }
 
-  def aggregationEnabled(key: ScopedKey[?], data: Settings[Scope]): Boolean =
+  def aggregationEnabled(key: ScopedKey[?], data: Settings): Boolean =
     (Scope.fillTaskAxis(key.scope, key.key) / Keys.aggregate).get(data).getOrElse(true)
   private[sbt] val suppressShow =
     AttributeKey[Boolean]("suppress-aggregation-show", Int.MaxValue)

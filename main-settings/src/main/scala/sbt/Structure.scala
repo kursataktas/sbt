@@ -11,7 +11,7 @@ package sbt
 import scala.annotation.targetName
 
 import sbt.internal.util.Types.*
-import sbt.internal.util.{ AttributeKey, KeyTag, Settings, SourcePosition }
+import sbt.internal.util.{ AttributeKey, KeyTag, SourcePosition }
 import sbt.internal.util.TupleMapExtension.*
 import sbt.util.OptJsonWriter
 import sbt.ConcurrentRestrictions.Tag
@@ -303,8 +303,7 @@ object Scoped:
       setting(scopedKey, app, source)
 
     /** From the given `Settings`, extract the value bound to this key. */
-    final def get(settings: Settings[Scope]): Option[A1] =
-      settings.get(scopedKey.scope, scopedKey.key)
+    final def get(settings: Def.Settings): Option[A1] = settings.get(scopedKey)
 
     /**
      * Creates an [[Def.Initialize]] with value `scala.None` if there was no previous definition of this key,
@@ -385,7 +384,7 @@ object Scoped:
       ): Initialize[Task[A1]] =
         Initialize
           .joinAny[Task](coerceToAnyTaskSeq(tasks))
-          .zipWith(init)((ts, i) => i.copy(info = i.info.set(key, ts)))
+          .zipWith(init)((ts, i) => i.set(key, ts))
 
     extension [A1](init: Initialize[InputTask[A1]])
       @targetName("onTaskInitializeInputTask")
@@ -460,7 +459,7 @@ object Scoped:
 
     def toSettingKey: SettingKey[Task[A1]] = scopedSetting(scope, key)
 
-    def get(settings: Settings[Scope]): Option[Task[A1]] = settings.get(scope, key)
+    def get(settings: Def.Settings): Option[Task[A1]] = settings.get(scopedKey)
 
     /**
      * Creates an [[Def.Initialize]] with value `scala.None` if there was no previous definition of this key,

@@ -29,30 +29,14 @@ object KeyIndex {
   }
 
   def aggregate(
-      known: Iterable[ScopedKey[?]],
+      known: Set[ScopedKey[?]],
       extra: BuildUtil[?],
       projects: Map[URI, Set[String]],
       configurations: Map[String, Seq[Configuration]]
-  ): ExtendableKeyIndex = {
-    /*
-     * Used to be:
-     * (base(projects, configurations) /: known) { (index, key) =>
-     *   index.addAggregated(key, extra)
-     * }
-     * This was a significant serial bottleneck during project loading that we can work around by
-     * computing the aggregations in parallel and then bulk adding them to the index.
-     */
-    import scala.collection.parallel.CollectionConverters.*
-    val toAggregate = known.par.map {
-      case key if validID(key.key.label) =>
-        Aggregation.aggregate(key, ScopeMask(), extra, reverse = true)
-      case _ => Nil
-    }
-    toAggregate.foldLeft(base(projects, configurations)) {
-      case (index, Nil)  => index
-      case (index, keys) => keys.foldLeft(index)(_.add(_))
-    }
-  }
+  ): ExtendableKeyIndex =
+    Aggregation
+      .reverseAggregate(known.filter(k => validID(k.key.label)), extra)
+      .foldLeft(base(projects, configurations))(_.add(_))
 
   private def base(
       projects: Map[URI, Set[String]],
@@ -278,7 +262,7 @@ private[sbt] final class KeyIndex0(val data: BuildIndex) extends ExtendableKeyIn
 
   def addAggregated(scoped: ScopedKey[?], extra: BuildUtil[?]): ExtendableKeyIndex =
     if (validID(scoped.key.label)) {
-      val aggregateProjects = Aggregation.aggregate(scoped, ScopeMask(), extra, reverse = true)
+      val aggregateProjects = Aggregation.reverseAggregate(Set(scoped), extra)
       aggregateProjects.foldLeft(this: ExtendableKeyIndex)(_.add(_))
     } else this
 

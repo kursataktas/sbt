@@ -49,20 +49,21 @@ object SessionVar {
 
   def orEmpty(opt: Option[Map]) = opt.getOrElse(emptyMap)
 
-  def transform[S](task: Task[S], f: (State, S) => State): Task[S] = {
+  def transform[S](task: Task[S], f: (State, S) => State): Task[S] =
     val g = (s: S, map: AttributeMap) => map.put(Keys.transformState, (state: State) => f(state, s))
-    task.copy(info = task.info.postTransform(g))
-  }
+    task.postTransform(g)
 
   def resolveContext[T](
       key: ScopedKey[Task[T]],
       context: Scope,
       state: State
-  ): ScopedKey[Task[T]] = {
-    val subScope = Scope.replaceThis(context)(key.scope)
-    val scope = Project.structure(state).data.definingScope(subScope, key.key) getOrElse subScope
-    ScopedKey(scope, key.key)
-  }
+  ): ScopedKey[Task[T]] =
+    val subScoped = Project.replaceThis(context)(key)
+    Project
+      .structure(state)
+      .data
+      .definingKey(subScoped)
+      .getOrElse(subScoped)
 
   def read[T](key: ScopedKey[Task[T]], state: State)(implicit f: JsonFormat[T]): Option[T] =
     Project.structure(state).streams(state).use(key) { s =>

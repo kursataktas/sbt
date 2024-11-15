@@ -15,9 +15,9 @@ import Keys.taskDefinitionKey
 private[sbt] object TaskName {
   def name(node: Task[?]): String = definedName(node).getOrElse(anonymousName(node))
   def definedName(node: Task[?]): Option[String] =
-    node.info.name.orElse(transformNode(node).map(displayFull))
+    node.name.orElse(transformNode(node).map(displayFull))
   def anonymousName(node: TaskId[?]): String =
     "<anon-" + System.identityHashCode(node).toHexString + ">"
   def transformNode(node: Task[?]): Option[ScopedKey[?]] =
-    node.info.attributes.get(taskDefinitionKey)
+    node.get(taskDefinitionKey)
 }

@@ -449,8 +449,8 @@ object EvaluateTask {
       ref: ProjectRef
   ): Option[(Task[T], NodeView)] = {
     val thisScope = Load.projectScope(ref)
-    val resolvedScope = Scope.replaceThis(thisScope)(taskKey.scope)
-    for (t <- structure.data.get(resolvedScope, taskKey.key))
+    val subScoped = Project.replaceThis(thisScope)(taskKey.scopedKey)
+    for (t <- structure.data.get(subScoped))
       yield (t, nodeView(state, streams, taskKey :: Nil))
   }
   def nodeView(
@@ -582,7 +582,7 @@ object EvaluateTask {
     Function.chain(
       results.toTypedSeq flatMap {
         case results.TPair(_, Result.Value(KeyValue(_, st: StateTransform))) => Some(st.transform)
-        case results.TPair(Task(info, _), Result.Value(v)) => info.post(v).get(transformState)
+        case results.TPair(task: Task[?], Result.Value(v)) => task.post(v).get(transformState)
         case _                                             => Nil
       }
     )

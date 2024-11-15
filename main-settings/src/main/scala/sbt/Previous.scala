@@ -127,7 +127,7 @@ object Previous {
     val successfulTaskResults = (
       for
         case results.TPair(task: Task[?], Result.Value(v)) <- results.toTypedSeq
-        key <- task.info.attributes.get(Def.taskDefinitionKey).asInstanceOf[Option[AnyTaskKey]]
+        key <- task.get(Def.taskDefinitionKey).asInstanceOf[Option[AnyTaskKey]]
       yield key -> v
     ).toMap
     // We then traverse the successful results and look up all of the referenced values for
