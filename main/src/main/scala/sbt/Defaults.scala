@@ -867,14 +867,6 @@ object Defaults extends BuildCommon {
     }
   }
 
-  def defaultCompileSettings: Seq[Setting[?]] =
-    globalDefaults(
-      Seq(
-        enableBinaryCompileAnalysis :== true,
-        enableConsistentCompileAnalysis :== SysProp.analysis2024,
-      )
-    )
-
   lazy val configTasks: Seq[Setting[?]] = docTaskSettings(doc) ++
     inTask(compile)(compileInputsSettings) ++
     inTask(compileJava)(
@@ -893,7 +885,7 @@ object Defaults extends BuildCommon {
         }
       )
     ) ++
-    configGlobal ++ defaultCompileSettings ++ compileAnalysisSettings ++ Seq(
+    configGlobal ++ compileAnalysisSettings ++ Seq(
       compileOutputs := {
         import scala.jdk.CollectionConverters.*
         val c = fileConverter.value
@@ -2530,8 +2522,8 @@ object Defaults extends BuildCommon {
 
   private inline def analysisStore(inline analysisFile: TaskKey[File]): AnalysisStore =
     MixedAnalyzingCompiler.staticCachedStore(
-      analysisFile.value.toPath,
-      !enableBinaryCompileAnalysis.value
+      analysisFile = analysisFile.value.toPath,
+      useTextAnalysis = false,
     )
 
   def printWarningsTask: Initialize[Task[Unit]] =
