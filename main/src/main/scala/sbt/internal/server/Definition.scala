@@ -213,8 +213,8 @@ private[sbt] object Definition {
     s.log.debug(s"analysis location ${cacheFile}")
     updateCache(AnalysesAccess.cache)(
       cacheFile = cacheFile,
-      useBinary = enableBinaryCompileAnalysis.value,
-      useConsistent = enableConsistentCompileAnalysis.value,
+      useBinary = true,
+      useConsistent = true,
     )
   }
 
