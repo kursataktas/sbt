@@ -452,7 +452,7 @@ object Def extends BuildSyntax with Init with InitializeImplicits:
     (TaskKey[A](name, description, DTask), dummyTask(name))
 
   private[sbt] def dummyTask[T](name: String): Task[T] = {
-    import TaskExtra.toTaskInfo
+    import TaskExtra.named
     val base: Task[T] = TaskExtra
       .task(
         sys.error(s"Dummy task '$name' did not get converted to a full task.")

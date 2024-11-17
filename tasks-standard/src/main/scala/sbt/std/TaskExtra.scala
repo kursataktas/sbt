@@ -65,10 +65,6 @@ sealed trait SingleInTask[S] {
   )
   def flatMapR[T](f: Result[S] => Task[T]): Task[T]
 }
-sealed trait TaskInfo[S] {
-  def describedAs(s: String): Task[S]
-  def named(s: String): Task[S]
-}
 sealed trait ForkTask[S, CC[_]] {
   def fork[T](f: S => T): CC[Task[T]]
   def tasks: Seq[Task[S]]
@@ -77,25 +73,6 @@ sealed trait JoinTask[S, CC[_]] {
   def join: Task[CC[S]]
   // had to rename from 'reduce' for 2.9.0
   def reduced(f: (S, S) => S): Task[S]
-}
-
-sealed trait BinaryPipe {
-  def binary[T](f: BufferedInputStream => T): Task[T]
-  def binary[T](sid: String)(f: BufferedInputStream => T): Task[T]
-  def #>(f: File): Task[Unit]
-  def #>(sid: String, f: File): Task[Unit]
-}
-sealed trait TextPipe {
-  def text[T](f: BufferedReader => T): Task[T]
-  def text[T](sid: String)(f: BufferedReader => T): Task[T]
-}
-sealed trait TaskLines {
-  def lines: Task[List[String]]
-  def lines(sid: String): Task[List[String]]
-}
-sealed trait ProcessPipe {
-  def #|(p: ProcessBuilder): Task[Int]
-  def pipe(sid: String)(p: ProcessBuilder): Task[Int]
 }
 
 trait TaskExtra0 {
@@ -206,47 +183,46 @@ trait TaskExtra extends TaskExtra0 {
       }
       def &&[T](alt: Task[T]): Task[T] = flatMapN(_ => alt)
 
-  final implicit def toTaskInfo[S](in: Task[S]): TaskInfo[S] = new TaskInfo[S] {
+  extension [S](in: Task[S]) {
     def describedAs(s: String): Task[S] = in.setDescription(s)
     def named(s: String): Task[S] = in.setName(s)
   }
 
-  final implicit def pipeToProcess[Key](
+  extension [Key](
       t: Task[?]
-  )(implicit streams: Task[TaskStreams[Key]], key: Task[?] => Key): ProcessPipe =
-    new ProcessPipe {
-      def #|(p: ProcessBuilder): Task[Int] = pipe0(None, p)
-      def pipe(sid: String)(p: ProcessBuilder): Task[Int] = pipe0(Some(sid), p)
-      private def pipe0(sid: Option[String], p: ProcessBuilder): Task[Int] =
-        streams.mapN { s =>
-          val in = s.readBinary(key(t), sid)
-          val pio = TaskExtra
-            .processIO(s)
-            .withInput(out => { BasicIO.transferFully(in, out); out.close() })
-          (p run pio).exitValue()
-        }
-    }
+  )(using streams: Task[TaskStreams[Key]], key: Task[?] => Key) {
+    def #|(p: ProcessBuilder): Task[Int] = pipe0(None, p)
+    def pipe(sid: String)(p: ProcessBuilder): Task[Int] = pipe0(Some(sid), p)
+    private def pipe0(sid: Option[String], p: ProcessBuilder): Task[Int] =
+      streams.mapN { s =>
+        val in = s.readBinary(key(t), sid)
+        val pio = TaskExtra
+          .processIO(s)
+          .withInput(out => { BasicIO.transferFully(in, out); out.close() })
+        (p run pio).exitValue()
+      }
+  }
 
-  final implicit def binaryPipeTask[Key](
+  extension [Key](
       in: Task[?]
-  )(implicit streams: Task[TaskStreams[Key]], key: Task[?] => Key): BinaryPipe =
-    new BinaryPipe {
-      def binary[T](f: BufferedInputStream => T): Task[T] = pipe0(None, f)
-      def binary[T](sid: String)(f: BufferedInputStream => T): Task[T] = pipe0(Some(sid), f)
+  )(using streams: Task[TaskStreams[Key]], key: Task[?] => Key) {
+    def binary[T](f: BufferedInputStream => T): Task[T] = pipeBinary(None, f)
+    def binary[T](sid: String)(f: BufferedInputStream => T): Task[T] = pipeBinary(Some(sid), f)
 
-      def #>(f: File): Task[Unit] = pipe0(None, toFile(f))
-      def #>(sid: String, f: File): Task[Unit] = pipe0(Some(sid), toFile(f))
+    def #>(f: File): Task[Unit] = pipeBinary(None, toFile(f))
+    def #>(sid: String, f: File): Task[Unit] = pipeBinary(Some(sid), toFile(f))
 
-      private def pipe0[T](sid: Option[String], f: BufferedInputStream => T): Task[T] =
-        streams.mapN { s =>
-          f(s.readBinary(key(in), sid))
-        }
+    private def pipeBinary[T](sid: Option[String], f: BufferedInputStream => T): Task[T] =
+      streams.mapN { s =>
+        f(s.readBinary(key(in), sid))
+      }
 
-      private def toFile(f: File) = (in: InputStream) => IO.transfer(in, f)
-    }
-  final implicit def textPipeTask[Key](
+    private def toFile(f: File) = (in: InputStream) => IO.transfer(in, f)
+  }
+
+  extension [Key](
       in: Task[?]
-  )(implicit streams: Task[TaskStreams[Key]], key: Task[?] => Key): TextPipe = new TextPipe {
+  )(using streams: Task[TaskStreams[Key]], key: Task[?] => Key) {
     def text[T](f: BufferedReader => T): Task[T] = pipe0(None, f)
     def text[T](sid: String)(f: BufferedReader => T): Task[T] = pipe0(Some(sid), f)
 
@@ -255,9 +231,9 @@ trait TaskExtra extends TaskExtra0 {
         f(s.readText(key(in), sid))
       }
   }
-  final implicit def linesTask[Key](
+  extension [Key](
       in: Task[?]
-  )(implicit streams: Task[TaskStreams[Key]], key: Task[?] => Key): TaskLines = new TaskLines {
+  )(using streams: Task[TaskStreams[Key]], key: Task[?] => Key) {
     def lines: Task[List[String]] = lines0(None)
     def lines(sid: String): Task[List[String]] = lines0(Some(sid))
 
