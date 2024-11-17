@@ -98,10 +98,10 @@ class FileCommands(baseDirectory: File) extends BasicStatementHandler {
     }
   }
 
+  private type NamedCommand = (String, List[String] => Unit)
+
   // these are for readability of the command list
-  implicit def commandBuilder(s: String): CommandBuilder = new CommandBuilder(s)
-  final class CommandBuilder(commandName: String) {
-    type NamedCommand = (String, List[String] => Unit)
+  extension (commandName: String) {
     def nonEmpty(action: List[String] => Unit): NamedCommand =
       commandName -> { paths =>
         if (paths.isEmpty)
