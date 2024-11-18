@@ -20,10 +20,10 @@ private[sbt] final case class DynamicInput(
     forceTrigger: Boolean
 )
 private[sbt] object DynamicInput {
-  implicit object ordering extends Ordering[DynamicInput] {
+  given ordering: Ordering[DynamicInput] = new Ordering[DynamicInput] {
     private given globOrdering: Ordering[Glob] = Glob.ordering
-    private implicit object fileStamperOrdering extends Ordering[FileStamper] {
-      override def compare(left: FileStamper, right: FileStamper): Int = left match {
+    val fileStamperOrdering: Ordering[FileStamper] = (left: FileStamper, right: FileStamper) =>
+      left match {
         case FileStamper.Hash =>
           right match {
             case FileStamper.Hash => 0
@@ -35,7 +35,6 @@ private[sbt] object DynamicInput {
             case _                        => 1
           }
       }
-    }
     override def compare(left: DynamicInput, right: DynamicInput): Int = {
       globOrdering.compare(left.glob, right.glob) match {
         case 0 => fileStamperOrdering.compare(left.fileStamper, right.fileStamper)

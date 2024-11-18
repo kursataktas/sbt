@@ -134,13 +134,11 @@ object Watch {
    * [[CancelWatch]] is higher priority than [[ContinueWatch]].
    */
   object Action {
-    implicit object ordering extends Ordering[Action] {
-      override def compare(left: Action, right: Action): Int = (left, right) match {
-        case (a: ContinueWatch, b: ContinueWatch) => ContinueWatch.ordering.compare(a, b)
-        case (_: ContinueWatch, _: CancelWatch)   => 1
-        case (a: CancelWatch, b: CancelWatch)     => CancelWatch.ordering.compare(a, b)
-        case (_: CancelWatch, _: ContinueWatch)   => -1
-      }
+    given ordering: Ordering[Action] = {
+      case (a: ContinueWatch, b: ContinueWatch) => ContinueWatch.ordering.compare(a, b)
+      case (_: ContinueWatch, _: CancelWatch)   => 1
+      case (a: CancelWatch, b: CancelWatch)     => CancelWatch.ordering.compare(a, b)
+      case (_: CancelWatch, _: ContinueWatch)   => -1
     }
   }
 
@@ -163,13 +161,12 @@ object Watch {
     /**
      * A default `Ordering` for [[ContinueWatch]]. [[Trigger]] is higher priority than [[Ignore]].
      */
-    implicit object ordering extends Ordering[ContinueWatch] {
-      override def compare(left: ContinueWatch, right: ContinueWatch): Int = left match {
+    given ordering: Ordering[ContinueWatch] = (left: ContinueWatch, right: ContinueWatch) =>
+      left match {
         case ShowOptions => if (right == ShowOptions) 0 else -1
         case Ignore      => if (right == Ignore) 0 else 1
         case Trigger     => if (right == Trigger) 0 else if (right == ShowOptions) 1 else -1
       }
-    }
   }
 
   /**
@@ -182,8 +179,8 @@ object Watch {
      * is reflected by the ordering of the case statements in the [[ordering.compare]] method,
      * e.g. [[Custom]] is higher priority than [[HandleError]].
      */
-    implicit object ordering extends Ordering[CancelWatch] {
-      override def compare(left: CancelWatch, right: CancelWatch): Int = left match {
+    given ordering: Ordering[CancelWatch] = { (left: CancelWatch, right: CancelWatch) =>
+      left match {
         // Note that a negative return value means the left CancelWatch is preferred to the right
         // CancelWatch while the inverse is true for a positive return value. This logic could
         // likely be simplified, but the pattern matching approach makes it very clear what happens
